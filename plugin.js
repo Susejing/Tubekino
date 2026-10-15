@@ -1,4 +1,4 @@
-// TubeKino 0.3.12 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.13 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -27,7 +27,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.12";
+const VERSION = "0.3.13";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -543,9 +543,9 @@ async function itemDeId(id) {
 // búsqueda de YouTube (revienta con "out of memory" aunque lo demás vaya
 // bien, incluso recién reiniciado). Las instancias de los forks también
 // buscan por ti y sus respuestas son muchísimo más livianas: solo una lista
-// de videos. Si la búsqueda de YouTube revienta por memoria, se busca aquí;
-// y con 3 revientes seguidos, se va directo aquí (media hora; luego YouTube
-// vuelve a ser el primero).
+// de videos. Si la búsqueda de YouTube revienta por memoria, se busca aquí
+// (y con UN solo reviente, media hora sin gastar memoria en YouTube). En
+// Ajustes, "Búsqueda liviana" en "Sí" busca SIEMPRE aquí.
 
 // ¿El error es de memoria? (así lo dice Kino: "out of memory").
 function esErrorMemoria(e) {
@@ -1817,15 +1817,8 @@ export async function settingsStatus() {
       texto = texto + " Último: " + ultimoResolve.altura + "p (" + ultimoResolve.via + ").";
     }
   }
-  // La traza de directo dice QUÉ cliente sirvió el video: es la clave cuando
-  // la calidad sale baja. Se recorta a lo que sobre del límite de 200 para
-  // que el rótulo "Detalle: busca 'debug'" nunca quede cortado.
-  const cola = " Detalle: busca 'debug'.";
-  if (ultimoResolve && ultimoResolve.via === "directo" && !ultimoResolve.hls &&
-      ultimoResolve.altura > 0 && ultimoResolve.altura < 720 && trazaDirecto) {
-    const espacio = 200 - texto.length - cola.length - 11; // " Directo: " + "."
-    if (espacio > 20) texto = texto + " Directo: " + trazaDirecto.slice(0, Math.min(60, espacio)) + ".";
-  }
-  texto = texto + cola;
-  return { estado: texto.slice(0, 200) };
-                           }
+  // Los detalles técnicos (qué cliente sirvió el video, qué instancia cayó)
+  // viven solo en el informe "debug": el Estado queda limpio, sin avisos de
+  // error, como corresponde a un ajuste que ve cualquier usuario.
+  return { estado: (texto + " Detalle: busca 'debug'.").slice(0, 200) };
+        }
