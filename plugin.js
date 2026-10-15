@@ -1,13 +1,16 @@
-// TubeKino 0.3.7 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.10 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
 // (Innertube) para buscar y para pedir los formatos directamente. La calidad
 // alta está en el HLS de la página del video presentándonos como un Safari
 // de verdad (un manifiesto con varias calidades) — llega por rachas, así que
-// se reintenta. Y la red de seguridad es el navegador oculto de Kino, con
-// una excepción: el reproductor web nuevo de YouTube (SABR) genera enlaces
-// internos que solo él sabe usar; si la captura trae solo eso, se descarta.
+// se reintenta. Y si el directo falla del todo, la red de seguridad es el
+// navegador oculto de Kino, con una excepción: el reproductor web nuevo de
+// YouTube (SABR) genera enlaces internos que solo él sabe usar; si la
+// captura trae solo eso, se descarta. El navegador oculto es un WebView,
+// lo que más memoria consume en el aparato, así que NO se abre en cada
+// video para buscar calidad: solo si el directo falla del todo.
 // ¿Y si YouTube solo da 360p? El plan B son los "respaldos": servidores
 // públicos de los forks libres de YouTube (Invidious y Piped) que sí
 // resuelven los tokens anti-bot en sus servidores y entregan un enlace
@@ -18,7 +21,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.9";
+const VERSION = "0.3.10";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -45,9 +48,9 @@ let trazaNavegador = "";
 let rachaPaginaSinHls = 0;
 
 // ¿Cuántas capturas del navegador seguidas trajeron solo enlaces SABR (no
-// reproducibles)? Con 3 o más ya no se intenta como mejora de calidad
-// (ahorra ~3 s por reproducción); queda solo como respaldo si el directo
-// falla del todo.
+// reproducibles)? El navegador oculto ya no se usa como mejora de calidad
+// (consume mucha memoria y la página nueva solo entrega SABR): queda como
+// respaldo únicamente si el directo falla del todo.
 let rachaNavegadorSabr = 0;
 
 // Diagnóstico de los respaldos (forks de YouTube): qué instancia sirvió
@@ -267,20 +270,37 @@ async function innertube(endpoint, ctx, cuerpo) {
     for (const k in ctx.extra) payload.context[k] = ctx.extra[k];
   }
   for (const k in cuerpo) payload[k] = cuerpo[k];
-  return fetchJson(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept-Language": "es-419,es;q=0.8",
-      "User-Agent": ctx.client.userAgent,
-      // El número que YouTube le da a cada cliente (WEB=1, ANDROID=3,
-      // IOS=5, ANDROID_VR=28, WEB_EMBEDDED=56). Si no lo traemos, no se lo mandamos.
-      "X-YouTube-Client-Name": String(ctx.num || "3"),
-      "X-YouTube-Client-Version": ctx.client.clientVersion
-    },
-    body: { json: payload },
-    timeoutMs: 15000
-  });
+  // "out of memory" le pasa a este aparato cuando la memoria queda apretada
+  // (a veces el reproductor o el sistema la dejan así). Un respiro y una
+  // segunda oportunidad: casi siempre pasa.
+  let ultimoError = null;
+  for (let intento = 0; intento < 2; intento++) {
+    try {
+      return await fetchJson(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept-Language": "es-419,es;q=0.8",
+          "User-Agent": ctx.client.userAgent,
+          // El número que YouTube le da a cada cliente (WEB=1, ANDROID=3,
+          // IOS=5, ANDROID_VR=28, WEB_EMBEDDED=56). Si no lo traemos, no se lo mandamos.
+          "X-YouTube-Client-Name": String(ctx.num || "3"),
+          "X-YouTube-Client-Version": ctx.client.clientVersion
+        },
+        body: { json: payload },
+        timeoutMs: 15000
+      });
+    } catch (e) {
+      ultimoError = e;
+      const men = String(e && e.message ? e.message : e);
+      if (intento === 0 && /memory/i.test(men)) {
+        await esperar(500);
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw ultimoError;
 }
 
 // ---------- helpers de texto y datos ----------
@@ -1528,22 +1548,23 @@ export async function resolve(ref, options) {
   }
   if (metodo === "navegador") return await resolverNavegador(videoId);
 
-  // Automático: directo primero. Si falla (o el reproductor recibió un enlace
-  // vencido y Kino reintenta), navegador oculto.
+  // Automático: directo primero. Si quedó en calidad baja (menos de 720p),
+  // los respaldos de la comunidad. El navegador oculto NO se abre aquí: en
+  // este aparato la página nueva solo entrega enlaces SABR que no se pueden
+  // reproducir, y su WebView es lo que más memoria consume (se abría en cada
+  // video y dejaba el aparato sin memoria para el buscador). Solo se usa si
+  // el directo falla del todo.
   if (reintento === 0) {
     let directo = null;
     let alturaDirecto = 0;
     try {
       directo = await resolverDirecto(videoId);
       alturaDirecto = ultimoDirecto ? ultimoDirecto.altura : 0;
-    } catch (e) { /* seguimos con el navegador */ }
+    } catch (e) { /* a los respaldos */ }
 
     if (directo) {
-      // Si el directo funcionó pero quedó en calidad baja (menos de 720p),
-      // probamos el navegador oculto por si la página real consigue más.
       const vivo = String(directo.mime || "").indexOf("mpegurl") >= 0;
       if (!vivo && alturaDirecto > 0 && alturaDirecto < 720) {
-        // 1) Respaldo: los forks de la comunidad sí consiguen calidad alta.
         let txtRespaldo = "respaldo falló";
         try {
           const resp = await resolverRespaldo(videoId);
@@ -1552,23 +1573,8 @@ export async function resolve(ref, options) {
             return resp.stream;
           }
           txtRespaldo = "respaldo " + resp.altura + "p";
-        } catch (e) { /* seguimos con el navegador */ }
-        // 2) Navegador oculto: la última carta para superar el directo.
-        if (rachaNavegadorSabr >= 3) {
-          trazaDirecto = trazaDirecto + "; " + txtRespaldo + "; navegador omitido";
-        } else {
-          let txtNave = "navegador falló (SABR)";
-          try {
-            const nave = await resolverNavegador(videoId);
-            const alturaNave = ultimoNavegador ? ultimoNavegador.altura : 0;
-            if (alturaNave > alturaDirecto || (ultimoNavegador && ultimoNavegador.vivo)) {
-              ultimoResolve = ultimoNavegador;
-              return nave;
-            }
-            txtNave = "navegador " + (alturaNave || 0) + "p";
-          } catch (e) { /* SABR o captura fallida */ }
-          trazaDirecto = trazaDirecto + "; " + txtRespaldo + "; " + txtNave;
-        }
+        } catch (e) { /* queda el directo en 360p */ }
+        trazaDirecto = trazaDirecto + "; " + txtRespaldo;
       }
       ultimoResolve = ultimoDirecto;
       return directo;
@@ -1593,7 +1599,7 @@ export async function settingsStatus() {
   let texto = "TubeKino " + VERSION + ".";
   if (metodo === "directo") texto = texto + " Solo directo.";
   else if (metodo === "navegador") texto = texto + " Solo navegador.";
-  else texto = texto + " Auto: directo→navegador.";
+  else texto = texto + " Auto: directo→respaldo→navegador.";
   texto = texto + " Calidad: " + calidad + ".";
   if (ultimoResolve) {
     if (ultimoResolve.vivo) texto = texto + " Último: en vivo.";
@@ -1610,4 +1616,4 @@ export async function settingsStatus() {
   }
   texto = texto + " Detalle: busca 'debug'.";
   return { estado: texto.slice(0, 200) };
-        }
+      }
