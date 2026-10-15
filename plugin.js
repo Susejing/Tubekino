@@ -1,4 +1,4 @@
-// TubeKino 0.3.11 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.12 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -18,14 +18,16 @@
 // siguiente y la que funciona se recuerda para el próximo video.
 // Los respaldos también saben buscar: si la memoria del aparato no aguanta
 // las respuestas grandes de la búsqueda de YouTube ("out of memory"), se
-// busca en ellos — sus respuestas son livianas — y tras un rato sin
-// revientes, YouTube vuelve a ser el primero.
+// busca en ellos — sus respuestas son livianas — y durante media hora no
+// se vuelve a gastar memoria en YouTube. En Ajustes, "Búsqueda liviana"
+// en "Sí" busca SIEMPRE en los respaldos: en aparatos con poca RAM es lo
+// recomendado (la memoria ni se entera).
 //
 // En el buscador de Kino también puedes pegar un enlace de YouTube
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.11";
+const VERSION = "0.3.12";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -39,8 +41,8 @@ let trazaTendencias = "";
 // Diagnóstico de búsqueda: qué camino sirvió la última búsqueda (en "debug").
 let trazaBusqueda = "";
 
-// ¿Cuántas búsquedas de YouTube seguidas reventaron por memoria? A la
-// tercera, se busca directo en los respaldos (respuestas livianas) durante
+// ¿Cuántas búsquedas de YouTube seguidas reventaron por memoria? Al primer
+// reviente ya se busca directo en los respaldos (respuestas livianas) durante
 // media hora; después YouTube vuelve a ser el primero.
 let rachaBusqMem = 0;
 let ultBusqMem = 0;
@@ -550,10 +552,19 @@ function esErrorMemoria(e) {
   return /memory/i.test(String(e && e.message ? e.message : e));
 }
 
-// ¿Le toca a YouTube buscar? Con 3 revientes seguidos de memoria no vale la
-// pena gastar el aparato: respaldos directo. Pasada media hora, otra oportunidad.
+// Modo de búsqueda (Ajustes "Búsqueda liviana"): "si" = siempre respaldos
+// (nunca se gasta memoria en YouTube), "no" = solo YouTube, "auto" = YouTube
+// primero y respaldos si la memoria revienta.
+function modoBusqueda() {
+  const m = String(kino.config.get("busqliviana") || "auto").trim().toLowerCase();
+  return m === "si" || m === "no" ? m : "auto";
+}
+
+// ¿Le toca a YouTube buscar? En modo "Sí", nunca. En "auto", basta UN solo
+// reviente de memoria para irse a los respaldos media hora (antes pedía 3).
 function youtubeBuscable() {
-  if (rachaBusqMem < 3) return true;
+  if (modoBusqueda() === "si") return false;
+  if (rachaBusqMem < 1) return true;
   if (Date.now() - ultBusqMem > 1800000) {
     rachaBusqMem = 0;
     return true;
@@ -702,11 +713,13 @@ async function buscarVideos(query, cursor, limite) {
       trazaBusqueda = "YouTube directo (" + items.length + " resultados)";
       return { items: items, next: tokenDeContinuacion(j) };
     } catch (e) {
-      if (!esErrorMemoria(e)) throw e;
+      if (modoBusqueda() === "no" || !esErrorMemoria(e)) throw e;
       notaBusqMemoria(e);
     }
   } else {
-    trazaBusqueda = "YouTube en reposo (memoria): respaldos";
+    trazaBusqueda = modoBusqueda() === "si"
+      ? "Búsqueda liviana (Ajustes): respaldos"
+      : "YouTube en reposo (memoria): respaldos";
   }
   return await buscarRespaldo(query, null, limite);
 }
@@ -719,7 +732,8 @@ function informeDebug() {
   lineas.push("TubeKino " + VERSION + " — informe técnico. (Estas líneas no se pueden reproducir.)");
   lineas.push("Config: método=" + String(kino.config.get("metodo") || "auto") +
     ", calidad=" + String(kino.config.get("calidad") || "mejor") +
-    ", país=" + paisActual());
+    ", país=" + paisActual() +
+    ", búsqueda=" + modoBusqueda());
   if (ultimoResolve) {
     lineas.push("Último video: vía=" + ultimoResolve.via +
       ", altura=" + ultimoResolve.altura +
@@ -791,11 +805,13 @@ export async function search(query) {
       trazaBusqueda = "YouTube directo (" + items.length + " resultados)";
       return items;
     } catch (e) {
-      if (!esErrorMemoria(e)) throw e;
+      if (modoBusqueda() === "no" || !esErrorMemoria(e)) throw e;
       notaBusqMemoria(e);
     }
   } else {
-    trazaBusqueda = "YouTube en reposo (memoria): respaldos";
+    trazaBusqueda = modoBusqueda() === "si"
+      ? "Búsqueda liviana (Ajustes): respaldos"
+      : "YouTube en reposo (memoria): respaldos";
   }
   const r = await buscarRespaldo(q, null, 30);
   return r.items;
@@ -1793,6 +1809,7 @@ export async function settingsStatus() {
   else if (metodo === "navegador") texto = texto + " Solo navegador.";
   else texto = texto + " Auto: directo→respaldo→navegador.";
   texto = texto + " Calidad: " + calidad + ".";
+  if (modoBusqueda() === "si") texto = texto + " Búsqueda liviana.";
   if (ultimoResolve) {
     if (ultimoResolve.vivo) texto = texto + " Último: en vivo.";
     else if (ultimoResolve.hls) texto = texto + " Último: HLS (" + ultimoResolve.via + ").";
@@ -1801,11 +1818,14 @@ export async function settingsStatus() {
     }
   }
   // La traza de directo dice QUÉ cliente sirvió el video: es la clave cuando
-  // la calidad sale baja. Va antes que lo demás para que no la corte el límite.
+  // la calidad sale baja. Se recorta a lo que sobre del límite de 200 para
+  // que el rótulo "Detalle: busca 'debug'" nunca quede cortado.
+  const cola = " Detalle: busca 'debug'.";
   if (ultimoResolve && ultimoResolve.via === "directo" && !ultimoResolve.hls &&
       ultimoResolve.altura > 0 && ultimoResolve.altura < 720 && trazaDirecto) {
-    texto = texto + " Directo: " + trazaDirecto.slice(0, 60) + ".";
+    const espacio = 200 - texto.length - cola.length - 11; // " Directo: " + "."
+    if (espacio > 20) texto = texto + " Directo: " + trazaDirecto.slice(0, Math.min(60, espacio)) + ".";
   }
-  texto = texto + " Detalle: busca 'debug'.";
+  texto = texto + cola;
   return { estado: texto.slice(0, 200) };
-        }
+                           }
