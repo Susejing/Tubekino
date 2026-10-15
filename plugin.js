@@ -1,4 +1,4 @@
-// TubeKino 0.3.4 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.5 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -13,7 +13,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.4";
+const VERSION = "0.3.5";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -30,6 +30,9 @@ let trazaDirecto = "";
 // Diagnóstico cliente por cliente: qué le respondió YouTube a cada uno en el
 // último video (se ve con "debug"). Cada entrada es una línea.
 let trazaClientes = [];
+
+// Diagnóstico del navegador oculto: qué capturó y qué eligió (en "debug").
+let trazaNavegador = "";
 
 // ---------- Innertube: los clientes que se presentan como apps oficiales ----------
 
@@ -518,6 +521,7 @@ function informeDebug() {
   lineas.push("Último navegador: " + (ultimoNavegador
     ? ("altura=" + ultimoNavegador.altura + ", hls=" + (ultimoNavegador.hls ? "sí" : "no"))
     : "(no usado)"));
+  lineas.push("Detalle navegador: " + (trazaNavegador || "(sin capturas todavía)"));
   lineas.push("Portada: " + (trazaTendencias || "(la portada aún no se ha abierto)"));
   const items = [];
   for (let i = 0; i < lineas.length; i++) {
@@ -758,6 +762,8 @@ const ITAG_ALTURA = {
   18: 360, 22: 720,
   134: 360, 133: 240, 135: 480, 136: 720, 137: 1080, 138: 2160, 160: 144,
   264: 1440, 266: 2160, 298: 720, 299: 1080,
+  242: 240, 243: 360, 244: 480, 245: 480, 246: 480, 247: 720, 248: 1080,
+  271: 1440, 302: 720, 303: 1080, 308: 1440, 313: 2160, 315: 2160,
   394: 144, 395: 240, 396: 360, 397: 480, 398: 720, 399: 1080, 400: 1440, 401: 2160
 };
 
@@ -777,7 +783,24 @@ function alturaDeUrl(url) {
 }
 
 // Ranking de pistas de audio mp4 por itag (140 es la estándar y mejor).
-const ITAG_AUDIO = { 140: 4, 258: 3, 256: 2, 139: 1 };
+const ITAG_AUDIO = { 140: 4, 258: 3, 256: 2, 139: 1, 251: 2, 250: 2, 599: 2, 249: 1, 171: 1 };
+
+// ¿Qué es una petición capturada del reproductor de la página: video, audio
+// o nada? El reproductor moderno de YouTube (SABR) no pone mime ni itag en
+// la URL, así que la clasificación mira itag, luego mime, y como último
+// recurso acepta como video cualquier URL de videoplayback (que ya pasó el
+// filtro del navegador).
+function clasificaMedia(m) {
+  const it = itagDeUrl(m.url);
+  if (ITAG_AUDIO[it]) return "audio";
+  if (ITAG_ALTURA[it]) return "video";
+  if (m.mime && String(m.mime).indexOf("audio/") === 0) return "audio";
+  if (m.mime && String(m.mime).indexOf("video/") === 0) return "video";
+  if (/(mime=|mime%3D|mime\/)audio/i.test(m.url)) return "audio";
+  if (/(mime=|mime%3D|mime\/)video/i.test(m.url)) return "video";
+  if (String(m.url).indexOf("videoplayback") >= 0) return "video";
+  return "";
+}
 
 function rangoAudioDeUrl(url) {
   const s = String(url);
@@ -1092,9 +1115,20 @@ async function resolverNavegadorBase(videoId) {
     limpias.push(m);
   }
 
+  // Qué vio el navegador (para el informe "debug").
+  const itagsVistos = [];
+  for (let i = 0; i < limpias.length; i++) {
+    const it = itagDeUrl(limpias[i].url);
+    if (it) itagsVistos.push(it);
+  }
+  trazaNavegador = "capturó " + limpias.length + "/" + crudos.length +
+    (itagsVistos.length ? " peticiones; itags: " + itagsVistos.join(",") : " peticiones; sin itags") +
+    (crudos.length > limpias.length ? " (anuncios descartados)" : "");
+
   // En vivo: manifiesto HLS.
   for (let i = 0; i < limpias.length; i++) {
     if (/\.m3u8/i.test(limpias[i].url)) {
+      trazaNavegador = trazaNavegador + "; HLS (en vivo)";
       const s = { url: limpias[i].url, mime: "application/vnd.apple.mpegurl", esVivo: true };
       if (limpias[i].headers) s.headers = limpias[i].headers;
       return s;
@@ -1103,21 +1137,12 @@ async function resolverNavegadorBase(videoId) {
 
   // Video por un lado, audio por el otro (el reproductor de la página pide
   // las dos pistas por separado; Kino las une).
-  const esVideo = function (m) {
-    if (m.mime && String(m.mime).indexOf("video/") === 0) return true;
-    return /(mime=|mime%3D|mime\/)video/i.test(m.url);
-  };
-  const esAudio = function (m) {
-    if (m.mime && String(m.mime).indexOf("audio/") === 0) return true;
-    return /(mime=|mime%3D|mime\/)audio/i.test(m.url);
-  };
-
   const vids = [];
   const auds = [];
   for (let i = 0; i < limpias.length; i++) {
-    const m = limpias[i];
-    if (esVideo(m)) vids.push(m);
-    else if (esAudio(m)) auds.push(m);
+    const tipo = clasificaMedia(limpias[i]);
+    if (tipo === "video") vids.push(limpias[i]);
+    else if (tipo === "audio") auds.push(limpias[i]);
   }
 
   if (vids.length > 0) {
@@ -1135,7 +1160,12 @@ async function resolverNavegadorBase(videoId) {
       }
       if (!principal) principal = mp4[mp4.length - 1];
     }
-    if (!principal) principal = vids[0];
+    // Sin mp4 clásico, lo capturado vale como está (el reproductor de la
+    // página eligió esa pista por algo).
+    if (!principal) {
+      vids.sort(function (a, b) { return alturaDeUrl(b.url) - alturaDeUrl(a.url); });
+      principal = vids[0];
+    }
     const stream = { url: principal.url, mime: "video/mp4" };
     if (principal.headers) stream.headers = principal.headers;
     // Si el elegido ya trae el audio incluido (itag 18/22), no hay que unir nada.
@@ -1149,10 +1179,15 @@ async function resolverNavegadorBase(videoId) {
       if (!audio) audio = auds[0];
       stream.audioTracks = [{ lang: "und", url: audio.url }];
     }
+    trazaNavegador = trazaNavegador + "; eligió " +
+      (it ? "itag " + it : "pista sin itag") +
+      (alturaDeUrl(principal.url) ? " " + alturaDeUrl(principal.url) + "p" : "") +
+      (stream.audioTracks ? " + audio" : "");
     return stream;
   }
 
-  throw kino.error("not_found", "captura sin video", {
+  trazaNavegador = trazaNavegador + "; sin pistas de video en la captura";
+  throw kino.error("not_found", "captura sin video (" + trazaNavegador.slice(0, 120) + ")", {
     userMessage: "No se encontró el enlace del video. Inténtalo de nuevo en un momento."
   });
 }
