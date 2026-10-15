@@ -13,7 +13,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.1.2";
+const VERSION = "0.2.0";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -24,6 +24,13 @@ let ultimoResolve = null;
 
 const KEY_ANDROID = "AIzaSyA8eiZmM1FaDVjRyDfZTLQEjFIgb6DAlf0";
 const KEY_IOS = "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc";
+const KEY_WEB = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
+
+// País de tendencias y resultados (se configura en Ajustes).
+function paisActual() {
+  const p = String(kino.config.get("pais") || "CO").trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(p) ? p : "CO";
+}
 
 function ctxAndroid() {
   return {
@@ -35,6 +42,7 @@ function ctxAndroid() {
       osName: "Android",
       osVersion: "11",
       hl: "es-419",
+      gl: paisActual(),
       userAgent: "com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip"
     }
   };
@@ -51,7 +59,22 @@ function ctxIos() {
       osName: "iPhone",
       osVersion: "18.0.0",
       hl: "es-419",
+      gl: paisActual(),
       userAgent: "com.google.ios.youtube/21.26.4 (iPhone16,2; U; CPU iOS 18_0_0 like Mac OS X)"
+    }
+  };
+}
+
+// Cliente WEB: es el que responde las tendencias sin pedir tokens.
+function ctxWeb() {
+  return {
+    key: KEY_WEB,
+    client: {
+      clientName: "WEB",
+      clientVersion: "2.20250210.05.00",
+      hl: "es-419",
+      gl: paisActual(),
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
     }
   };
 }
@@ -362,29 +385,91 @@ function itemsDeRespuesta(j, limite) {
   return items;
 }
 
-export async function home() {
-  const filas = [
-    { id: "trailers", title: "Trailers y avances de películas", q: "trailer oficial película", genre: "peliculas" },
-    { id: "documentales", title: "Documentales completos", q: "documental completo en español", genre: "documentales" },
-    { id: "musica", title: "Conciertos y música", q: "concierto completo", genre: "musica" },
-    { id: "juegos", title: "Gameplays y videojuegos", q: "gameplay en español", genre: "entretenimiento" }
-  ];
+// ---------- tendencias reales ----------
+
+// Página de tendencias: la lista "Ahora" o una categoría con su params.
+async function paginaDeTendencias(params, cursor) {
+  const cuerpo = cursor ? { continuation: cursor } : { browseId: "FEtrending" };
+  if (!cursor && params) cuerpo.params = params;
+  const j = await innertube("browse", ctxWeb(), cuerpo);
+  return { items: itemsDeRespuesta(j, 40), next: tokenDeContinuacion(j) || undefined };
+}
+
+// Las pestañas de tendencias (Música, Videojuegos, Películas...) traen su
+// propio "params": con eso pedimos cada categoría de verdad.
+function pestanasDeTendencias(j) {
+  const hits = juntar(j, ["tabRenderer"]);
   const salida = [];
-  for (let i = 0; i < filas.length; i++) {
-    const f = filas[i];
-    try {
-      const r = await buscarVideos(f.q, null, 18);
-      if (r.items.length > 0) {
-        salida.push({
-          id: "fila." + f.id,
-          title: f.title,
-          items: r.items,
-          ref: "search:" + f.q,
-          genre: f.genre
-        });
-      }
-    } catch (e) { /* fila omitida, las demás siguen */ }
+  for (let i = 0; i < hits.length; i++) {
+    const t = hits[i].datos;
+    const titulo = runsToText(t.title);
+    const ep = t.endpoint && t.endpoint.browseEndpoint;
+    if (!titulo || !ep || ep.browseId !== "FEtrending") continue;
+    if (typeof ep.params !== "string" || !ep.params) continue;
+    salida.push({ title: titulo, params: ep.params });
   }
+  return salida;
+}
+
+export async function home() {
+  const salida = [];
+
+  // Tendencias de verdad: la lista que YouTube llama "Ahora".
+  try {
+    const j = await innertube("browse", ctxWeb(), { browseId: "FEtrending" });
+    const ahora = itemsDeRespuesta(j, 20);
+    if (ahora.length > 0) {
+      salida.push({
+        id: "fila.tendencias",
+        title: "Tendencias",
+        items: ahora,
+        ref: "tr:",
+        genre: "tendencias"
+      });
+    }
+    // Categorías reales de tendencias: Música, Videojuegos, Películas...
+    const pestanas = pestanasDeTendencias(j);
+    for (let i = 0; i < pestanas.length && i < 3; i++) {
+      try {
+        const cat = await paginaDeTendencias(pestanas[i].params, null);
+        if (cat.items.length > 0) {
+          salida.push({
+            id: "fila.tendencias." + i,
+            title: "Tendencias — " + pestanas[i].title,
+            items: cat.items.slice(0, 18),
+            ref: "tr:" + pestanas[i].params,
+            genre: "tendencias"
+          });
+        }
+      } catch (e) { /* categoría omitida, seguimos con las demás */ }
+    }
+  } catch (e) { /* tendencias no disponibles: usamos las filas de respaldo */ }
+
+  // Respaldo si lo real no llegó: filas curadas de siempre.
+  if (salida.length < 2) {
+    const filas = [
+      { id: "trailers", title: "Trailers y avances de películas", q: "trailer oficial película", genre: "peliculas" },
+      { id: "documentales", title: "Documentales completos", q: "documental completo en español", genre: "documentales" },
+      { id: "musica", title: "Conciertos y música", q: "concierto completo", genre: "musica" },
+      { id: "juegos", title: "Gameplays y videojuegos", q: "gameplay en español", genre: "entretenimiento" }
+    ];
+    for (let i = 0; i < filas.length; i++) {
+      const f = filas[i];
+      try {
+        const r = await buscarVideos(f.q, null, 18);
+        if (r.items.length > 0) {
+          salida.push({
+            id: "fila." + f.id,
+            title: f.title,
+            items: r.items,
+            ref: "search:" + f.q,
+            genre: f.genre
+          });
+        }
+      } catch (e) { /* fila omitida, las demás siguen */ }
+    }
+  }
+
   if (salida.length === 0) throw kino.error("unavailable", "home sin filas");
   return salida;
 }
@@ -435,6 +520,7 @@ async function paginaDeCanal(channelId, cursor) {
 export async function browse(ref, cursor) {
   ref = String(ref || "");
   if (ref.indexOf("search:") === 0) return paginaDeBusqueda(ref.slice(7), cursor);
+  if (ref.indexOf("tr:") === 0) return paginaDeTendencias(ref.slice(3), cursor);
   if (ref.indexOf("pl:") === 0) return paginaDeLista(ref.slice(3), cursor);
   if (ref.indexOf("ch:") === 0) return paginaDeCanal(ref.slice(3), cursor);
   throw kino.error("not_found", "browse ref " + ref.slice(0, 60));
