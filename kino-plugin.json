@@ -1,11 +1,11 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "apiVersion": 6,
   "entry": "plugin.js",
-  "description": "Busca y reproduce videos, listas y canales de YouTube con doble estrategia: extracción directa y, cuando YouTube bloquea, el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
-  "hosts": ["youtube.com", "*.youtube.com", "youtu.be", "*.ytimg.com", "googlevideo.com", "*.googlevideo.com"],
+  "description": "Busca y reproduce videos, listas y canales de YouTube con triple estrategia: extracción directa, respaldo en servidores de la comunidad (instancias de Invidious) para la calidad alta, y el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
+  "hosts": ["youtube.com", "*.youtube.com", "youtu.be", "*.ytimg.com", "googlevideo.com", "*.googlevideo.com", "inv.nadeko.net", "invidious.nerdvpn.de", "yt.chocolatemoo53.com", "invidious.tiekoetter.com", "invidious.f5.si"],
   "capabilities": ["search", "home", "browse", "episodes", "resolve"],
   "browser": true,
   "debug": true,
@@ -36,6 +36,14 @@
         { "value": "PE", "label": "Perú" }
       ],
       "hint": "De qué país salen los resultados de búsqueda y la portada." },
+    { "key": "respaldo", "label": "Servidores de respaldo (forks de YouTube)", "type": "select", "default": "si",
+      "options": [
+        { "value": "si", "label": "Sí: usarlos si YouTube solo da 360p" },
+        { "value": "no", "label": "No: solo YouTube directo" }
+      ],
+      "hint": "Instancias públicas de Invidious que consiguen la calidad alta." },
+    { "key": "servidor", "label": "Servidor propio (opcional)", "type": "text",
+      "hint": "URL de tu Invidious (ej: http://192.168.1.50:3000). Se usa primero." },
     { "key": "estado", "label": "Estado", "type": "status" }
   ]
 }
