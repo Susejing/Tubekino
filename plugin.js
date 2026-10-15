@@ -8,15 +8,17 @@
 // se reintenta. Y la red de seguridad es el navegador oculto de Kino, con
 // una excepción: el reproductor web nuevo de YouTube (SABR) genera enlaces
 // internos que solo él sabe usar; si la captura trae solo eso, se descarta.
-// ¿Y si YouTube solo da 360p? El plan B son los "respaldos": instancias
-// públicas de Invidious (el fork libre de YouTube) cuyos servidores sí
-// resuelven los tokens anti-bot y entregan un enlace de calidad alta.
+// ¿Y si YouTube solo da 360p? El plan B son los "respaldos": servidores
+// públicos de los forks libres de YouTube (Invidious y Piped) que sí
+// resuelven los tokens anti-bot en sus servidores y entregan un enlace
+// de calidad alta. Son ~20 instancias: si una está caída, se pasa a la
+// siguiente y la que funciona se recuerda para el próximo video.
 //
 // En el buscador de Kino también puedes pegar un enlace de YouTube
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.8";
+const VERSION = "0.3.9";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -231,9 +233,13 @@ async function fetchJson(url, options) {
         // Si YouTube explica el error en JSON, quedarnos con el mensaje.
         try {
           const j = JSON.parse(cuerpo);
+          // El error puede venir como objeto ({message}) o como texto plano
+          // (así responde Invidious: {"error":"..."}).
           const msg = j && j.error && typeof j.error.message === "string" && j.error.message
             ? j.error.message
-            : (j && j.error && typeof j.error.status === "string" ? j.error.status : "");
+            : (j && typeof j.error === "string" && j.error)
+              ? j.error
+              : (j && j.error && typeof j.error.status === "string" ? j.error.status : "");
           detalle = msg ? detalle + " " + String(msg).slice(0, 120)
                         : detalle + " " + String(cuerpo).slice(0, 120);
         } catch (e2) {
@@ -1125,11 +1131,13 @@ async function resolverPagina(videoId) {
 }
 
 // ---------- respaldo: forks de YouTube operados por la comunidad ----------
-// YouTube exige "tokens anti-bot" para dar más de 360p y en la TV no se
-// pueden generar. Las instancias públicas de Invidious (fork libre) sí
-// resuelven esa parte en sus servidores y entregan un enlace listo.
-// Lista oficial: docs.invidious.io/instances. Si una falla se pasa a la
-// siguiente; la que funciona se recuerda para el próximo video.
+// YouTube exige "tokens anti-bot" para dar más de 360p y en este aparato
+// no se pueden generar. Los forks públicos sí resuelven esa parte en sus
+// servidores y entregan un enlace listo. Hay dos familias, ambas libres:
+// Invidious (lista oficial: docs.invidious.io/instances) y Piped (lista
+// oficial: TeamPiped/documentation). Si un servidor falla se pasa al
+// siguiente; el que funciona se recuerda para el próximo video, y con
+// media hora sin fallos se olvida la racha (rotan sus IPs y se recuperan).
 const RESPALDOS = [
   "https://inv.nadeko.net",
   "https://invidious.nerdvpn.de",
@@ -1138,10 +1146,34 @@ const RESPALDOS = [
   "https://invidious.f5.si"
 ];
 
-let respaldoBueno = "";      // última instancia que funcionó (se usa primero)
-let cursorRespaldos = 0;     // por cuál pública vamos (rotar si van cayendo)
+const PIPEDS = [
+  "https://pipedapi.kavin.rocks",
+  "https://pipedapi.adminforge.de",
+  "https://pipedapi.drgns.space",
+  "https://pipedapi.ducks.party",
+  "https://api.piped.private.coffee",
+  "https://pipedapi.leptons.xyz",
+  "https://piped-api.privacy.com.de",
+  "https://pipedapi.owo.si",
+  "https://pipedapi.reallyaweso.me",
+  "https://piped-api.codespace.cz",
+  "https://pipedapi.darkness.services",
+  "https://pipedapi.orangenet.cc",
+  "https://pipedapi.nosebs.ru",
+  "https://api.piped.yt",
+  "https://pipedapi-libre.kavin.rocks"
+];
+
+// Un servidor de respaldo: base + qué API habla ("invidious" o "piped").
+const POOL = [];
+for (let i = 0; i < RESPALDOS.length; i++) POOL.push({ base: RESPALDOS[i], api: "invidious" });
+for (let i = 0; i < PIPEDS.length; i++) POOL.push({ base: PIPEDS[i], api: "piped" });
+
+let respaldoBueno = "";      // "base|api" del último servidor que funcionó
+let cursorRespaldos = 0;     // por cuál del grupo vamos (rotar si van cayendo)
 let rachaRespaldos = 0;      // intentos fallidos seguidos
-let respaldoPausado = false; // con todas caídas, no volver a frenar la TV
+let respaldoPausado = false; // con todas caídas, esperar un rato (no frenar la TV)
+let ultimoFalloRespaldos = 0; // cuándo fue el último fallo (para reactivar)
 
 // Altura de un formato de Invidious ("720p", "hd720", "1280x720"...).
 function alturaEtiqueta(f) {
@@ -1157,7 +1189,110 @@ function alturaEtiqueta(f) {
   return 0;
 }
 
-// Pide el video a las instancias y devuelve el mejor enlace que consigan.
+// Altura de un formato de Piped (quality: "1080p", o height).
+function alturaPiped(s) {
+  if (s && typeof s.height === "number" && s.height > 0) return s.height;
+  const m = String((s && s.quality) || "").match(/(\d{3,4})p/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+// Solo enlaces "locales" (la instancia hace de puente): los directos de
+// googlevideo solo sirven desde la IP del servidor, no desde este aparato.
+function esLocalUrl(u) {
+  return typeof u === "string" && u.indexOf("http") === 0 && u.indexOf("googlevideo.com") < 0;
+}
+
+// Le pide el video a un servidor de respaldo (Invidious o Piped) y devuelve
+// el mejor enlace que tenga.
+async function pedirRespaldo(videoId, ent) {
+  const ua = ctxWeb().client.userAgent;
+  const cap = capDeCalidad();
+  if (ent.api === "piped") {
+    const j = await fetchJson(ent.base + "/api/streams/" + videoId, {
+      method: "GET",
+      headers: { "Accept": "application/json", "User-Agent": ua, "Accept-Language": "es-419,es;q=0.8" },
+      timeoutMs: 6000
+    });
+    if (j && typeof j.error === "string" && j.error) throw new Error(String(j.error).slice(0, 60));
+    if (j.liveStream === true && typeof j.hls === "string" && j.hls.indexOf("http") === 0) {
+      return { stream: { url: j.hls, mime: "application/vnd.apple.mpegurl", esVivo: true }, altura: 0, vivo: true };
+    }
+    const vs = Array.isArray(j.videoStreams) ? j.videoStreams : [];
+    const as = Array.isArray(j.audioStreams) ? j.audioStreams : [];
+    let mux = null; // video+audio en el mismo archivo (itag 18/22, hasta 720p)
+    let vid = null; // video solo (aquí vive la calidad alta)
+    for (let k = 0; k < vs.length; k++) {
+      const s = vs[k];
+      if (!s || !esLocalUrl(s.url) || String(s.format || "") !== "MPEG_4") continue;
+      const al = alturaPiped(s);
+      if (al <= 0 || al > cap) continue;
+      if (s.videoOnly === false) {
+        if (!mux || al > mux.altura) mux = { url: s.url, altura: al, audio: null };
+      } else if (!vid || al > vid.altura) vid = { url: s.url, altura: al };
+    }
+    let mejor = mux;
+    if (vid && (!mejor || vid.altura > mejor.altura)) {
+      let aud = null;
+      for (let k = 0; k < as.length; k++) {
+        const a = as[k];
+        if (!a || !esLocalUrl(a.url) || String(a.format || "") !== "M4A") continue;
+        if (!aud || (a.bitrate || 0) > (aud.bitrate || 0)) aud = a;
+      }
+      if (aud) mejor = { url: vid.url, altura: vid.altura, audio: aud.url };
+    }
+    if (mejor) {
+      const st = { url: mejor.url, mime: "video/mp4" };
+      if (mejor.audio) st.audioTracks = [{ lang: "und", url: mejor.audio }];
+      return { stream: st, altura: mejor.altura, vivo: false };
+    }
+    throw new Error("sin enlaces utilizables");
+  }
+  // Invidious.
+  const j = await fetchJson(ent.base + "/api/v1/videos/" + videoId + "?local=true", {
+    method: "GET",
+    headers: { "Accept": "application/json", "User-Agent": ua, "Accept-Language": "es-419,es;q=0.8" },
+    timeoutMs: 6000
+  });
+  if (j && typeof j.error === "string" && j.error) throw new Error(String(j.error).slice(0, 60));
+  if (j.liveNow === true && typeof j.hlsUrl === "string" && j.hlsUrl.indexOf("http") === 0) {
+    return { stream: { url: j.hlsUrl, mime: "application/vnd.apple.mpegurl", esVivo: true }, altura: 0, vivo: true };
+  }
+  const completos = [];
+  const vids = [];
+  const auds = [];
+  const fs2 = Array.isArray(j.formatStreams) ? j.formatStreams : [];
+  for (let k = 0; k < fs2.length; k++) {
+    const f = fs2[k];
+    if (!f || !esLocalUrl(f.url)) continue;
+    if (String(f.type || "").indexOf("video/mp4") === 0 && alturaEtiqueta(f) > 0 && alturaEtiqueta(f) <= cap) completos.push(f);
+  }
+  const ads = Array.isArray(j.adaptiveFormats) ? j.adaptiveFormats : [];
+  for (let k = 0; k < ads.length; k++) {
+    const f = ads[k];
+    if (!f || !esLocalUrl(f.url)) continue;
+    const tipo = String(f.type || "");
+    if (tipo.indexOf("video/mp4") === 0 && alturaEtiqueta(f) > 0 && alturaEtiqueta(f) <= cap) vids.push(f);
+    else if (tipo.indexOf("audio/mp4") === 0) auds.push(f);
+  }
+  vids.sort(function (a, b) { return alturaEtiqueta(b) - alturaEtiqueta(a); });
+  completos.sort(function (a, b) { return alturaEtiqueta(b) - alturaEtiqueta(a); });
+  auds.sort(function (a, b) { return (b.bitrate || 0) - (a.bitrate || 0); });
+  let st = null;
+  let al = 0;
+  if (completos.length > 0) {
+    st = { url: completos[0].url, mime: "video/mp4" };
+    al = alturaEtiqueta(completos[0]);
+  }
+  if (vids.length > 0 && auds.length > 0 && alturaEtiqueta(vids[0]) > al) {
+    st = { url: vids[0].url, mime: "video/mp4", audioTracks: [{ lang: "und", url: auds[0].url }] };
+    al = alturaEtiqueta(vids[0]);
+  }
+  if (st) return { stream: st, altura: al, vivo: false };
+  throw new Error("sin enlaces utilizables");
+}
+
+// Pide el video al grupo de servidores y devuelve el mejor enlace que
+// consigan entre todos.
 async function resolverRespaldo(videoId) {
   const propio = String(kino.config.get("servidor") || "").trim().replace(/\/+$/, "");
   const usarPublicos = String(kino.config.get("respaldo") || "si").trim() !== "no";
@@ -1165,102 +1300,59 @@ async function resolverRespaldo(videoId) {
     trazaRespaldos = "(desactivado en Ajustes)";
     throw new Error("respaldo desactivado");
   }
+  // Las instancias rotan sus IPs y se recuperan: con media hora sin tocar
+  // este aparato, la racha se olvida y se vuelve a intentar con ganas.
+  const ahora = Date.now();
+  if (rachaRespaldos > 0 && ahora - ultimoFalloRespaldos > 1800000) {
+    rachaRespaldos = 0;
+    respaldoPausado = false;
+  }
   if (respaldoPausado) {
-    trazaRespaldos = "en pausa: todas las instancias cayeron (se reactiva al reiniciar)";
+    const falta = Math.max(1, Math.round((1800000 - (ahora - ultimoFalloRespaldos)) / 60000));
+    trazaRespaldos = "en pausa: " + rachaRespaldos + " fallos seguidos (se reactiva en ~" + falta + " min)";
     throw new Error("respaldo en pausa");
   }
   const lista = [];
-  if (propio) lista.push(propio);
+  if (propio) lista.push({ base: propio, api: "invidious", propio: true });
   if (usarPublicos) {
-    if (respaldoBueno && lista.indexOf(respaldoBueno) < 0) lista.push(respaldoBueno);
-    for (let i = 0; i < RESPALDOS.length; i++) {
-      const b = RESPALDOS[(cursorRespaldos + i) % RESPALDOS.length];
-      if (lista.indexOf(b) < 0) lista.push(b);
+    if (respaldoBueno) {
+      const sep = respaldoBueno.indexOf("|");
+      lista.push({ base: respaldoBueno.slice(0, sep), api: respaldoBueno.slice(sep + 1), propio: false });
+    }
+    for (let i = 0; i < POOL.length; i++) {
+      const ent = POOL[(cursorRespaldos + i) % POOL.length];
+      let repetido = false;
+      for (let k = 0; k < lista.length; k++) {
+        if (lista[k].base === ent.base && lista[k].api === ent.api) { repetido = true; break; }
+      }
+      if (!repetido) lista.push({ base: ent.base, api: ent.api, propio: false });
     }
   }
-  // Con fallas seguidas, menos intentos por video para no frenar la TV.
-  const maxIntentos = rachaRespaldos >= 4 ? 1 : 2;
+  // Con fallas seguidas, menos intentos por video para no frenar el aparato.
+  const maxIntentos = rachaRespaldos >= 16 ? 1 : rachaRespaldos >= 8 ? 2 : 3;
   const intentos = [];
-  const cap = capDeCalidad();
-  const ua = ctxWeb().client.userAgent;
   let probados = 0;
   for (let i = 0; i < lista.length && probados < maxIntentos; i++) {
-    const base = lista[i];
-    const corto = base.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const ent = lista[i];
+    const corto = ent.base.replace(/^https?:\/\//, "").replace(/\/$/, "");
     probados++;
-    let j = null;
     try {
-      j = await fetchJson(base + "/api/v1/videos/" + videoId + "?local=true", {
-        method: "GET",
-        headers: { "Accept": "application/json", "User-Agent": ua, "Accept-Language": "es-419,es;q=0.8" },
-        timeoutMs: 7000
-      });
-      if (j && typeof j.error === "string" && j.error) throw new Error(j.error);
+      const r = await pedirRespaldo(videoId, ent);
+      respaldoBueno = ent.base + "|" + ent.api;
+      rachaRespaldos = 0;
+      respaldoPausado = false;
+      trazaRespaldos = corto + " (" + ent.api + "): " + (r.vivo ? "HLS en vivo" : r.altura + "p") + " ✓";
+      ultimoRespaldo = { altura: r.altura, via: "respaldo", hls: !!r.vivo, vivo: !!r.vivo };
+      return { stream: r.stream, altura: r.altura, instancia: corto, vivo: !!r.vivo };
     } catch (e) {
       intentos.push(corto + ": " + String(e && e.message ? e.message : e).slice(0, 50));
       rachaRespaldos++;
-      if (base !== propio) cursorRespaldos = (cursorRespaldos + 1) % RESPALDOS.length;
-      if (rachaRespaldos >= 8) respaldoPausado = true;
-      continue;
+      ultimoFalloRespaldos = ahora;
+      if (!ent.propio) cursorRespaldos = (cursorRespaldos + 1) % POOL.length;
+      if (rachaRespaldos >= 24) respaldoPausado = true;
     }
-    // En vivo: el manifiesto HLS de la instancia.
-    if (j.liveNow === true && typeof j.hlsUrl === "string" && j.hlsUrl.indexOf("http") === 0) {
-      respaldoBueno = base;
-      rachaRespaldos = 0;
-      trazaRespaldos = corto + ": HLS (en vivo) ✓";
-      ultimoRespaldo = { altura: 0, via: "respaldo", hls: true, vivo: true };
-      return { stream: { url: j.hlsUrl, mime: "application/vnd.apple.mpegurl", esVivo: true }, altura: 0, instancia: corto, vivo: true };
-    }
-    // Solo enlaces "locales" (la instancia hace de puente): los directos de
-    // googlevideo solo sirven desde la IP del servidor, no desde la TV.
-    const esLocal = function (u) {
-      return typeof u === "string" && u.indexOf("http") === 0 && u.indexOf("googlevideo.com") < 0;
-    };
-    const completos = [];
-    const vids = [];
-    const auds = [];
-    const fs2 = Array.isArray(j.formatStreams) ? j.formatStreams : [];
-    for (let k = 0; k < fs2.length; k++) {
-      const f = fs2[k];
-      if (!f || !esLocal(f.url)) continue;
-      if (String(f.type || "").indexOf("video/mp4") === 0 && alturaEtiqueta(f) > 0 && alturaEtiqueta(f) <= cap) completos.push(f);
-    }
-    const ads = Array.isArray(j.adaptiveFormats) ? j.adaptiveFormats : [];
-    for (let k = 0; k < ads.length; k++) {
-      const f = ads[k];
-      if (!f || !esLocal(f.url)) continue;
-      const tipo = String(f.type || "");
-      if (tipo.indexOf("video/mp4") === 0 && alturaEtiqueta(f) > 0 && alturaEtiqueta(f) <= cap) vids.push(f);
-      else if (tipo.indexOf("audio/mp4") === 0) auds.push(f);
-    }
-    vids.sort(function (a, b) { return alturaEtiqueta(b) - alturaEtiqueta(a); });
-    completos.sort(function (a, b) { return alturaEtiqueta(b) - alturaEtiqueta(a); });
-    auds.sort(function (a, b) { return (b.bitrate || 0) - (a.bitrate || 0); });
-    // Video+audio en un archivo (como el itag 18/22): lo más confiable.
-    let st = null;
-    let al = 0;
-    if (completos.length > 0) {
-      st = { url: completos[0].url, mime: "video/mp4" };
-      al = alturaEtiqueta(completos[0]);
-    }
-    // Las calidades más altas vienen por separado (video + pista de audio).
-    if (vids.length > 0 && auds.length > 0 && alturaEtiqueta(vids[0]) > al) {
-      st = { url: vids[0].url, mime: "video/mp4", audioTracks: [{ lang: "und", url: auds[0].url }] };
-      al = alturaEtiqueta(vids[0]);
-    }
-    if (st) {
-      respaldoBueno = base;
-      rachaRespaldos = 0;
-      trazaRespaldos = corto + ": " + al + "p ✓";
-      ultimoRespaldo = { altura: al, via: "respaldo", hls: false, vivo: false };
-      return { stream: st, altura: al, instancia: corto, vivo: false };
-    }
-    intentos.push(corto + ": sin enlaces utilizables");
-    rachaRespaldos++;
-    if (base !== propio) cursorRespaldos = (cursorRespaldos + 1) % RESPALDOS.length;
-    if (rachaRespaldos >= 8) respaldoPausado = true;
   }
-  trazaRespaldos = intentos.join("; ").slice(0, 160);
+  trazaRespaldos = intentos.join("; ").slice(0, 600);
   throw new Error("respaldo: " + trazaRespaldos.slice(0, 100));
 }
 
@@ -1518,4 +1610,4 @@ export async function settingsStatus() {
   }
   texto = texto + " Detalle: busca 'debug'.";
   return { estado: texto.slice(0, 200) };
-            }
+        }
