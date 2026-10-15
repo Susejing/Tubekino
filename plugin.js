@@ -13,7 +13,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.2.2";
+const VERSION = "0.3.0";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -447,6 +447,8 @@ export async function home() {
   }
 
   if (j) {
+    // Que el Estado siempre cuente cómo fueron las tendencias (OK o error).
+    trazaTendencias = "OK (" + viaTendencias + ")";
     const ahora = itemsDeRespuesta(j, 20);
     if (ahora.length > 0) {
       salida.push({
@@ -662,7 +664,10 @@ function rangoAudioDeUrl(url) {
 // Vía directa: pedir los formatos a Innertube como app oficial.
 async function resolverDirectoBase(videoId) {
   let detalle = "";
-  const clientes = [ctxAndroid(), ctxIos()];
+  // IPhone primero: su respuesta trae el manifiesto HLS, que YouTube entrega
+  // completo (con calidades de hasta 1080p) sin pedir los tokens que sí le
+  // exige a los enlaces directos de alta calidad.
+  const clientes = [ctxIos(), ctxAndroid()];
   for (let i = 0; i < clientes.length; i++) {
     const cx = clientes[i];
     let j = null;
@@ -680,12 +685,14 @@ async function resolverDirectoBase(videoId) {
     const sd = j.streamingData;
     if (!sd) { detalle = detalle + " [sin streamingData]"; continue; }
 
-    // En vivo: el manifiesto HLS no necesita tokens, funciona directo.
+    // Manifiesto HLS: no necesita tokens y trae varias calidades. Es la vía
+    // de calidad del cliente de iPhone (también cubre los en vivo).
     if (typeof sd.hlsManifestUrl === "string" && sd.hlsManifestUrl.indexOf("https://") === 0) {
       return {
         url: sd.hlsManifestUrl,
         mime: "application/vnd.apple.mpegurl",
-        headers: { "User-Agent": cx.client.userAgent }
+        headers: { "User-Agent": cx.client.userAgent },
+        esVivo: !!(j.videoDetails && j.videoDetails.isLive === true)
       };
     }
 
@@ -803,7 +810,7 @@ async function resolverNavegadorBase(videoId) {
   // En vivo: manifiesto HLS.
   for (let i = 0; i < limpias.length; i++) {
     if (/\.m3u8/i.test(limpias[i].url)) {
-      const s = { url: limpias[i].url, mime: "application/vnd.apple.mpegurl" };
+      const s = { url: limpias[i].url, mime: "application/vnd.apple.mpegurl", esVivo: true };
       if (limpias[i].headers) s.headers = limpias[i].headers;
       return s;
     }
@@ -869,7 +876,10 @@ async function resolverNavegadorBase(videoId) {
 // Ajustes → Estado y para que el modo automático compare y elija).
 function infoDeStream(s) {
   if (!s || !s.url) return { altura: 0, vivo: false };
-  if (String(s.mime || "").indexOf("mpegurl") >= 0) return { altura: 0, vivo: true };
+  if (String(s.mime || "").indexOf("mpegurl") >= 0) {
+    // HLS: varias calidades en un manifiesto; los en vivo traen esVivo.
+    return { altura: 0, vivo: s.esVivo !== false, hls: true };
+  }
   return { altura: alturaDeUrl(s.url), vivo: false };
 }
 
@@ -948,6 +958,7 @@ export async function settingsStatus() {
   texto = texto + " Calidad: " + calidad + ".";
   if (ultimoResolve) {
     if (ultimoResolve.vivo) texto = texto + " Último video: en vivo.";
+    else if (ultimoResolve.hls) texto = texto + " Último video: HLS (" + ultimoResolve.via + ").";
     else if (ultimoResolve.altura > 0) {
       texto = texto + " Último video: " + ultimoResolve.altura + "p (" + ultimoResolve.via + ").";
     }
