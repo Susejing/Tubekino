@@ -1,4 +1,4 @@
-// TubeKino 0.3.2 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.3 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -13,7 +13,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.2";
+const VERSION = "0.3.3";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -26,6 +26,10 @@ let trazaTendencias = "";
 
 // Diagnóstico de reproducción: por dónde y en qué calidad salió el video.
 let trazaDirecto = "";
+
+// Diagnóstico cliente por cliente: qué le respondió YouTube a cada uno en el
+// último video (se ve con "debug"). Cada entrada es una línea.
+let trazaClientes = [];
 
 // ---------- Innertube: los clientes que se presentan como apps oficiales ----------
 
@@ -43,6 +47,7 @@ function ctxAndroid() {
   return {
     key: KEY_ANDROID,
     num: "3",
+    etiqueta: "ANDROID",
     client: {
       clientName: "ANDROID",
       clientVersion: "21.26.364",
@@ -56,20 +61,41 @@ function ctxAndroid() {
   };
 }
 
+// ANDROID sin el número de SDK: presentar el SDK activa la exigencia de
+// tokens de YouTube; sin él, muchos videos llegan con enlaces completos.
+// (Truco documentado por yt-dlp y librerías similares.)
+function ctxAndroidSdkless() {
+  return {
+    key: KEY_ANDROID,
+    num: "3",
+    etiqueta: "ANDROID_SDKLESS",
+    client: {
+      clientName: "ANDROID",
+      clientVersion: "21.26.364",
+      osName: "Android",
+      osVersion: "11",
+      hl: "es-419",
+      gl: paisActual(),
+      userAgent: "com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip"
+    }
+  };
+}
+
 function ctxIos() {
   return {
     key: KEY_IOS,
     num: "5",
+    etiqueta: "IOS",
     client: {
       clientName: "IOS",
       clientVersion: "21.26.4",
       deviceMake: "Apple",
       deviceModel: "iPhone16,2",
       osName: "iPhone",
-      osVersion: "18.0.0",
+      osVersion: "18.3.2.22D82",
       hl: "es-419",
       gl: paisActual(),
-      userAgent: "com.google.ios.youtube/21.26.4 (iPhone16,2; U; CPU iOS 18_0_0 like Mac OS X)"
+      userAgent: "com.google.ios.youtube/21.26.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)"
     }
   };
 }
@@ -92,19 +118,23 @@ function ctxWeb() {
 // Cliente ANDROID_VR (la app de YouTube en visores): es de los pocos a los que
 // YouTube NO exige "PO tokens", así que entrega la lista completa de formatos
 // con enlaces incluidos, hasta 1080p y más (falla en videos "para niños").
+// Versión y datos exactos que usa yt-dlp hoy.
 function ctxVr() {
   return {
     key: KEY_ANDROID,
     num: "28",
+    etiqueta: "ANDROID_VR",
     client: {
       clientName: "ANDROID_VR",
-      clientVersion: "1.62.27",
+      clientVersion: "1.65.10",
+      deviceMake: "Oculus",
+      deviceModel: "Quest 3",
       androidSdkVersion: 32,
       osName: "Android",
-      osVersion: "12",
+      osVersion: "12L",
       hl: "es-419",
       gl: paisActual(),
-      userAgent: "com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12; GB) gzip"
+      userAgent: "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip"
     }
   };
 }
@@ -116,12 +146,13 @@ function ctxWebSafari() {
   return {
     key: KEY_WEB,
     num: "1",
+    etiqueta: "WEB_SAFARI",
     client: {
       clientName: "WEB",
-      clientVersion: "2.20250210.05.00",
+      clientVersion: "2.20260708.00.00",
       hl: "es-419",
       gl: paisActual(),
-      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)"
     }
   };
 }
@@ -132,13 +163,36 @@ function ctxWebEmbedded() {
   return {
     key: KEY_WEB,
     num: "56",
+    etiqueta: "WEB_EMBEDDED",
     extra: { thirdParty: { embedUrl: "https://www.youtube.com/" } },
     client: {
       clientName: "WEB_EMBEDDED_PLAYER",
-      clientVersion: "1.20250210.01.00",
+      clientVersion: "2.20260708.00.00",
       hl: "es-419",
       gl: paisActual(),
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)"
+    }
+  };
+}
+
+// Cliente VISIONOS (la app de YouTube para el Apple Vision Pro): es de los
+// pocos que YouTube atiende sin exigir tokens y sin pedir el reproductor JS.
+// Va primero: versión y datos exactos que usa yt-dlp.
+function ctxVisionos() {
+  return {
+    key: null, // yt-dlp ya no manda API key: el endpoint funciona sin ella.
+    num: "101",
+    etiqueta: "VISIONOS",
+    client: {
+      clientName: "VISIONOS",
+      clientVersion: "1.02",
+      deviceMake: "Apple",
+      deviceModel: "RealityDevice17,1",
+      osName: "visionOS",
+      osVersion: "26.5.23O471",
+      hl: "es-419",
+      gl: paisActual(),
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"
     }
   };
 }
@@ -174,8 +228,11 @@ async function fetchJson(url, options) {
 
 // Llama a la API interna de YouTube como si fuéramos la app oficial.
 async function innertube(endpoint, ctx, cuerpo) {
+  // yt-dlp ya no manda API key (el endpoint funciona sin ella); nosotros la
+  // seguimos mandando en los clientes que siempre la llevaron, y omitimos
+  // la key en los nuevos, igual que ellos.
   const url = "https://www.youtube.com/youtubei/v1/" + endpoint +
-    "?key=" + ctx.key + "&prettyPrint=false";
+    (ctx.key ? "?key=" + ctx.key + "&prettyPrint=false" : "?prettyPrint=false");
   const payload = { context: { client: ctx.client } };
   // Algunos clientes (como el de videos incrustados) necesitan más contexto.
   if (ctx.extra) {
@@ -449,6 +506,15 @@ function informeDebug() {
     lineas.push("Último video: (nada reproducido desde que se actualizó el plugin)");
   }
   lineas.push("Traza directo: " + (trazaDirecto || "(vacía: el directo aún no se ha probado)"));
+  // Qué le respondió YouTube a cada cliente en el último intento directo.
+  if (trazaClientes.length > 0) {
+    lineas.push("Clientes probados en el último video (en orden):");
+    for (let i = 0; i < trazaClientes.length; i++) {
+      lineas.push("  - " + trazaClientes[i]);
+    }
+  } else {
+    lineas.push("Clientes: (el directo aún no se ha probado)");
+  }
   lineas.push("Último navegador: " + (ultimoNavegador
     ? ("altura=" + ultimoNavegador.altura + ", hls=" + (ultimoNavegador.hls ? "sí" : "no"))
     : "(no usado)"));
@@ -721,35 +787,52 @@ function rangoAudioDeUrl(url) {
 }
 
 // Vía directa: pedir los formatos a Innertube como app oficial.
+// Cada intento queda registrado en trazaClientes (visible con "debug"):
+// es lo que nos dice QUÉ le respondió YouTube a cada cliente.
 async function resolverDirectoBase(videoId) {
   let detalle = "";
-  // Primero los clientes a los que YouTube NO exige tokens: la app VR
-  // (formatos con enlaces hasta 1080p+) y el WEB de Safari (manifiesto HLS
-  // de calidad alta). Luego el reproductor incrustado. iPhone (HLS) y
-  // Android quedan de respaldo: a ellos sí les exige tokens y suelen caer
-  // en 360p.
-  const clientes = [ctxVr(), ctxWebSafari(), ctxWebEmbedded(), ctxIos(), ctxAndroid()];
+  trazaClientes = [];
+  // El mejor resultado de calidad baja se guarda y la cadena sigue: si
+  // ANDROID sin SDK solo trae 360p, probamos los demás por si traen HD.
+  // Con 720p o más nos quedamos con ese cliente y no gastamos más tiempo.
+  let mejor = null;
+  // Primero los clientes a los que hoy YouTube NO exige tokens, según la
+  // investigación de yt-dlp: VISIONOS (la app de Vision Pro), la app VR
+  // (formatos con enlaces hasta 1080p+) y ANDROID sin SDK. Luego el
+  // reproductor incrustado y el WEB de Safari (HLS). IPhone y Android van
+  // al final: a ellos sí les exige tokens y suelen caer en 360p.
+  const clientes = [ctxVisionos(), ctxVr(), ctxAndroidSdkless(), ctxWebEmbedded(), ctxWebSafari(), ctxIos(), ctxAndroid()];
   for (let i = 0; i < clientes.length; i++) {
     const cx = clientes[i];
+    const et = cx.etiqueta || cx.client.clientName;
     let j = null;
     try {
       j = await innertube("player", cx, { videoId: videoId, contentCheckOk: true, racyCheckOk: true });
     } catch (e) {
-      detalle = detalle + " [" + cx.client.clientName + ": " + String(e && e.message ? e.message : e).slice(0, 80) + "]";
+      const men = String(e && e.message ? e.message : e).slice(0, 100);
+      detalle = detalle + " [" + et + ": " + men + "]";
+      trazaClientes.push(et + ": " + men);
       continue;
     }
     const ps = j && j.playabilityStatus;
     if (!ps || ps.status !== "OK") {
-      detalle = detalle + " [" + cx.client.clientName + ": " + String(ps && ps.reason ? ps.reason : ps ? ps.status : "sin respuesta") + "]";
+      const men = String(ps && ps.reason ? ps.reason : ps ? ps.status : "sin respuesta").slice(0, 100);
+      detalle = detalle + " [" + et + ": " + men + "]";
+      trazaClientes.push(et + ": " + men);
       continue;
     }
     const sd = j.streamingData;
-    if (!sd) { detalle = detalle + " [sin streamingData]"; continue; }
+    if (!sd) {
+      detalle = detalle + " [" + et + ": sin streamingData]";
+      trazaClientes.push(et + ": sin streamingData");
+      continue;
+    }
 
     // Manifiesto HLS: no necesita tokens y trae varias calidades. Es la vía
     // de calidad del cliente de iPhone (también cubre los en vivo).
     if (typeof sd.hlsManifestUrl === "string" && sd.hlsManifestUrl.indexOf("https://") === 0) {
-      trazaDirecto = cx.client.clientName + " HLS";
+      trazaDirecto = et + " HLS";
+      trazaClientes.push(et + ": HLS ✓");
       return {
         url: sd.hlsManifestUrl,
         mime: "application/vnd.apple.mpegurl",
@@ -791,36 +874,59 @@ async function resolverDirectoBase(videoId) {
     });
     completos.sort(function (a, b) { return altura(b) - altura(a); });
 
-    // Mejor calidad: video HD por un lado + audio por el otro; Kino los une.
+    // ¿Qué candidato trae este cliente? (video+audio > combinado > sin audio)
+    let st = null;
+    let al = 0;
+    let texto = "";
     if (vids.length > 0 && auds.length > 0 &&
         (completos.length === 0 || altura(vids[0]) > altura(completos[0]))) {
-      trazaDirecto = cx.client.clientName + " " + altura(vids[0]) + "p+audio";
-      return {
+      st = {
         url: vids[0].url,
         mime: "video/mp4",
         headers: { "User-Agent": cx.client.userAgent },
         audioTracks: [{ lang: "und", url: auds[0].url }]
       };
+      al = altura(vids[0]);
+      texto = et + " " + al + "p+audio";
+    } else if (completos.length > 0) {
+      st = { url: completos[0].url, mime: "video/mp4", headers: { "User-Agent": cx.client.userAgent } };
+      al = altura(completos[0]);
+      texto = et + " " + al + "p";
+    } else if (vids.length > 0) {
+      st = { url: vids[0].url, mime: "video/mp4", headers: { "User-Agent": cx.client.userAgent } };
+      al = altura(vids[0]);
+      texto = et + " " + al + "p sin audio";
     }
-    // Si no hay nada mejor que el combinado, usamos el combinado.
-    if (completos.length > 0) {
-      trazaDirecto = cx.client.clientName + " " + altura(completos[0]) + "p";
-      return {
-        url: completos[0].url,
-        mime: "video/mp4",
-        headers: { "User-Agent": cx.client.userAgent }
-      };
+    if (st) {
+      trazaClientes.push(et + ": " + texto.slice(et.length + 1) + " ✓");
+      // Con calidad alta (720p o el tope si es menor) nos quedamos ya.
+      const aceptable = cap < 720 ? cap : 720;
+      if (al >= aceptable) {
+        trazaDirecto = texto;
+        return st;
+      }
+      if (!mejor || al > mejor.altura) mejor = { stream: st, altura: al, traza: texto };
+    } else {
+      // Llegó respuesta pero sin nada utilizable: casi siempre es que YouTube
+      // entregó los formatos SIN enlaces (exigiendo tokens). Que la traza lo
+      // diga claro, con cuántos formatos y cuántos con enlace.
+      let total = formats.length + adaptive.length;
+      let conEnlace = 0;
+      for (let k = 0; k < formats.length; k++) {
+        if (formats[k] && typeof formats[k].url === "string") conEnlace++;
+      }
+      for (let k = 0; k < adaptive.length; k++) {
+        if (adaptive[k] && typeof adaptive[k].url === "string") conEnlace++;
+      }
+      const men = "sin enlaces (" + conEnlace + "/" + total + " formatos con URL)";
+      detalle = detalle + " [" + et + ": " + men + "]";
+      trazaClientes.push(et + ": " + men);
     }
-    // Última oportunidad: adaptativo aunque falte la pista de audio.
-    if (vids.length > 0) {
-      trazaDirecto = cx.client.clientName + " " + altura(vids[0]) + "p sin audio";
-      return {
-        url: vids[0].url,
-        mime: "video/mp4",
-        headers: { "User-Agent": cx.client.userAgent }
-      };
-    }
-    detalle = detalle + " [" + cx.client.clientName + ": sin formatos utilizables]";
+  }
+  // Ninguno dio calidad alta: nos quedamos con el mejor de los bajos.
+  if (mejor) {
+    trazaDirecto = mejor.traza;
+    return mejor.stream;
   }
   trazaDirecto = "falla: " + detalle.slice(0, 80);
   const e = new Error("directo falló:" + detalle);
@@ -1004,7 +1110,8 @@ export async function resolve(ref, options) {
           if (alturaNave > alturaDirecto) return nave;
           trazaDirecto = trazaDirecto + "; navegador " + (alturaNave || 0) + "p";
         } catch (e) {
-          trazaDirecto = trazaDirecto + "; navegador falló";
+          trazaDirecto = trazaDirecto + "; navegador falló" +
+            (e && e.code ? " (" + e.code + ")" : "");
         }
       }
       ultimoResolve = ultimoDirecto;
