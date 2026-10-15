@@ -1,4 +1,4 @@
-// TubeKino 0.3.6 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.7 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -8,12 +8,15 @@
 // se reintenta. Y la red de seguridad es el navegador oculto de Kino, con
 // una excepción: el reproductor web nuevo de YouTube (SABR) genera enlaces
 // internos que solo él sabe usar; si la captura trae solo eso, se descarta.
+// ¿Y si YouTube solo da 360p? El plan B son los "respaldos": instancias
+// públicas de Invidious (el fork libre de YouTube) cuyos servidores sí
+// resuelven los tokens anti-bot y entregan un enlace de calidad alta.
 //
 // En el buscador de Kino también puedes pegar un enlace de YouTube
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.6";
+const VERSION = "0.3.7";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -44,6 +47,11 @@ let rachaPaginaSinHls = 0;
 // (ahorra ~3 s por reproducción); queda solo como respaldo si el directo
 // falla del todo.
 let rachaNavegadorSabr = 0;
+
+// Diagnóstico de los respaldos (forks de YouTube): qué instancia sirvió
+// el último video o qué le pasó a cada una (se ve con "debug").
+let trazaRespaldos = "";
+let ultimoRespaldo = null;
 
 // ---------- Innertube: los clientes que se presentan como apps oficiales ----------
 
@@ -533,6 +541,7 @@ function informeDebug() {
     ? ("altura=" + ultimoNavegador.altura + ", hls=" + (ultimoNavegador.hls ? "sí" : "no"))
     : "(no usado)"));
   lineas.push("Detalle navegador: " + (trazaNavegador || "(sin capturas todavía)"));
+  lineas.push("Respaldos (forks): " + (trazaRespaldos || "(sin intentos todavía)"));
   lineas.push("Portada: " + (trazaTendencias || "(la portada aún no se ha abierto)"));
   const items = [];
   for (let i = 0; i < lineas.length; i++) {
@@ -1115,6 +1124,146 @@ async function resolverPagina(videoId) {
   throw new Error("sin HLS ni enlaces en la página");
 }
 
+// ---------- respaldo: forks de YouTube operados por la comunidad ----------
+// YouTube exige "tokens anti-bot" para dar más de 360p y en la TV no se
+// pueden generar. Las instancias públicas de Invidious (fork libre) sí
+// resuelven esa parte en sus servidores y entregan un enlace listo.
+// Lista oficial: docs.invidious.io/instances. Si una falla se pasa a la
+// siguiente; la que funciona se recuerda para el próximo video.
+const RESPALDOS = [
+  "https://inv.nadeko.net",
+  "https://invidious.nerdvpn.de",
+  "https://yt.chocolatemoo53.com",
+  "https://invidious.tiekoetter.com",
+  "https://invidious.f5.si"
+];
+
+let respaldoBueno = "";      // última instancia que funcionó (se usa primero)
+let cursorRespaldos = 0;     // por cuál pública vamos (rotar si van cayendo)
+let rachaRespaldos = 0;      // intentos fallidos seguidos
+let respaldoPausado = false; // con todas caídas, no volver a frenar la TV
+
+// Altura de un formato de Invidious ("720p", "hd720", "1280x720"...).
+function alturaEtiqueta(f) {
+  if (f && typeof f.height === "number" && f.height > 0) return f.height;
+  let m = String((f && f.qualityLabel) || "").match(/(\d{3,4})p?/i);
+  if (m) return parseInt(m[1], 10);
+  m = String((f && f.resolution) || "").match(/x(\d{3,4})/);
+  if (m) return parseInt(m[1], 10);
+  const q = String((f && f.quality) || "");
+  if (q === "hd720") return 720;
+  if (q === "medium") return 360;
+  if (q === "small") return 240;
+  return 0;
+}
+
+// Pide el video a las instancias y devuelve el mejor enlace que consigan.
+async function resolverRespaldo(videoId) {
+  const propio = String(kino.config.get("servidor") || "").trim().replace(/\/+$/, "");
+  const usarPublicos = String(kino.config.get("respaldo") || "si").trim() !== "no";
+  if (!propio && !usarPublicos) {
+    trazaRespaldos = "(desactivado en Ajustes)";
+    throw new Error("respaldo desactivado");
+  }
+  if (respaldoPausado) {
+    trazaRespaldos = "en pausa: todas las instancias cayeron (se reactiva al reiniciar)";
+    throw new Error("respaldo en pausa");
+  }
+  const lista = [];
+  if (propio) lista.push(propio);
+  if (usarPublicos) {
+    if (respaldoBueno && lista.indexOf(respaldoBueno) < 0) lista.push(respaldoBueno);
+    for (let i = 0; i < RESPALDOS.length; i++) {
+      const b = RESPALDOS[(cursorRespaldos + i) % RESPALDOS.length];
+      if (lista.indexOf(b) < 0) lista.push(b);
+    }
+  }
+  // Con fallas seguidas, menos intentos por video para no frenar la TV.
+  const maxIntentos = rachaRespaldos >= 4 ? 1 : 2;
+  const intentos = [];
+  const cap = capDeCalidad();
+  const ua = ctxWeb().client.userAgent;
+  let probados = 0;
+  for (let i = 0; i < lista.length && probados < maxIntentos; i++) {
+    const base = lista[i];
+    const corto = base.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    probados++;
+    let j = null;
+    try {
+      j = await fetchJson(base + "/api/v1/videos/" + videoId + "?local=true", {
+        method: "GET",
+        headers: { "Accept": "application/json", "User-Agent": ua, "Accept-Language": "es-419,es;q=0.8" },
+        timeoutMs: 7000
+      });
+      if (j && typeof j.error === "string" && j.error) throw new Error(j.error);
+    } catch (e) {
+      intentos.push(corto + ": " + String(e && e.message ? e.message : e).slice(0, 50));
+      rachaRespaldos++;
+      if (base !== propio) cursorRespaldos = (cursorRespaldos + 1) % RESPALDOS.length;
+      if (rachaRespaldos >= 8) respaldoPausado = true;
+      continue;
+    }
+    // En vivo: el manifiesto HLS de la instancia.
+    if (j.liveNow === true && typeof j.hlsUrl === "string" && j.hlsUrl.indexOf("http") === 0) {
+      respaldoBueno = base;
+      rachaRespaldos = 0;
+      trazaRespaldos = corto + ": HLS (en vivo) ✓";
+      ultimoRespaldo = { altura: 0, via: "respaldo", hls: true, vivo: true };
+      return { stream: { url: j.hlsUrl, mime: "application/vnd.apple.mpegurl", esVivo: true }, altura: 0, instancia: corto, vivo: true };
+    }
+    // Solo enlaces "locales" (la instancia hace de puente): los directos de
+    // googlevideo solo sirven desde la IP del servidor, no desde la TV.
+    const esLocal = function (u) {
+      return typeof u === "string" && u.indexOf("http") === 0 && u.indexOf("googlevideo.com") < 0;
+    };
+    const completos = [];
+    const vids = [];
+    const auds = [];
+    const fs2 = Array.isArray(j.formatStreams) ? j.formatStreams : [];
+    for (let k = 0; k < fs2.length; k++) {
+      const f = fs2[k];
+      if (!f || !esLocal(f.url)) continue;
+      if (String(f.type || "").indexOf("video/mp4") === 0 && alturaEtiqueta(f) > 0 && alturaEtiqueta(f) <= cap) completos.push(f);
+    }
+    const ads = Array.isArray(j.adaptiveFormats) ? j.adaptiveFormats : [];
+    for (let k = 0; k < ads.length; k++) {
+      const f = ads[k];
+      if (!f || !esLocal(f.url)) continue;
+      const tipo = String(f.type || "");
+      if (tipo.indexOf("video/mp4") === 0 && alturaEtiqueta(f) > 0 && alturaEtiqueta(f) <= cap) vids.push(f);
+      else if (tipo.indexOf("audio/mp4") === 0) auds.push(f);
+    }
+    vids.sort(function (a, b) { return alturaEtiqueta(b) - alturaEtiqueta(a); });
+    completos.sort(function (a, b) { return alturaEtiqueta(b) - alturaEtiqueta(a); });
+    auds.sort(function (a, b) { return (b.bitrate || 0) - (a.bitrate || 0); });
+    // Video+audio en un archivo (como el itag 18/22): lo más confiable.
+    let st = null;
+    let al = 0;
+    if (completos.length > 0) {
+      st = { url: completos[0].url, mime: "video/mp4" };
+      al = alturaEtiqueta(completos[0]);
+    }
+    // Las calidades más altas vienen por separado (video + pista de audio).
+    if (vids.length > 0 && auds.length > 0 && alturaEtiqueta(vids[0]) > al) {
+      st = { url: vids[0].url, mime: "video/mp4", audioTracks: [{ lang: "und", url: auds[0].url }] };
+      al = alturaEtiqueta(vids[0]);
+    }
+    if (st) {
+      respaldoBueno = base;
+      rachaRespaldos = 0;
+      trazaRespaldos = corto + ": " + al + "p ✓";
+      ultimoRespaldo = { altura: al, via: "respaldo", hls: false, vivo: false };
+      return { stream: st, altura: al, instancia: corto, vivo: false };
+    }
+    intentos.push(corto + ": sin enlaces utilizables");
+    rachaRespaldos++;
+    if (base !== propio) cursorRespaldos = (cursorRespaldos + 1) % RESPALDOS.length;
+    if (rachaRespaldos >= 8) respaldoPausado = true;
+  }
+  trazaRespaldos = intentos.join("; ").slice(0, 160);
+  throw new Error("respaldo: " + trazaRespaldos.slice(0, 100));
+}
+
 // Vía navegador oculto: la página real de YouTube hace la magia (tokens
 // incluidos) y Kino nos entrega los enlaces que el reproductor generó.
 async function resolverNavegadorBase(videoId) {
@@ -1302,24 +1451,44 @@ export async function resolve(ref, options) {
       // probamos el navegador oculto por si la página real consigue más.
       const vivo = String(directo.mime || "").indexOf("mpegurl") >= 0;
       if (!vivo && alturaDirecto > 0 && alturaDirecto < 720) {
+        // 1) Respaldo: los forks de la comunidad sí consiguen calidad alta.
+        let txtRespaldo = "respaldo falló";
+        try {
+          const resp = await resolverRespaldo(videoId);
+          if (resp.vivo || resp.altura > alturaDirecto) {
+            ultimoResolve = ultimoRespaldo;
+            return resp.stream;
+          }
+          txtRespaldo = "respaldo " + resp.altura + "p";
+        } catch (e) { /* seguimos con el navegador */ }
+        // 2) Navegador oculto: la última carta para superar el directo.
         if (rachaNavegadorSabr >= 3) {
-          // La captura solo ha traído SABR: no gastar ~3 s en cada reproducción.
-          trazaDirecto = trazaDirecto + "; navegador omitido (solo SABR)";
+          trazaDirecto = trazaDirecto + "; " + txtRespaldo + "; navegador omitido";
         } else {
+          let txtNave = "navegador falló (SABR)";
           try {
             const nave = await resolverNavegador(videoId);
             const alturaNave = ultimoNavegador ? ultimoNavegador.altura : 0;
-            if (alturaNave > alturaDirecto) return nave;
-            trazaDirecto = trazaDirecto + "; navegador " + (alturaNave || 0) + "p";
-          } catch (e) {
-            trazaDirecto = trazaDirecto + "; navegador sin enlaces utilizables";
-          }
+            if (alturaNave > alturaDirecto || (ultimoNavegador && ultimoNavegador.vivo)) {
+              ultimoResolve = ultimoNavegador;
+              return nave;
+            }
+            txtNave = "navegador " + (alturaNave || 0) + "p";
+          } catch (e) { /* SABR o captura fallida */ }
+          trazaDirecto = trazaDirecto + "; " + txtRespaldo + "; " + txtNave;
         }
       }
       ultimoResolve = ultimoDirecto;
       return directo;
     }
   }
+  // El directo falló: los respaldos primero (hoy son más fiables que el
+  // navegador oculto) y el navegador de última.
+  try {
+    const resp = await resolverRespaldo(videoId);
+    ultimoResolve = ultimoRespaldo;
+    return resp.stream;
+  } catch (e) { /* al navegador */ }
   return await resolverNavegador(videoId);
 }
 
