@@ -13,7 +13,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.2.1";
+const VERSION = "0.2.2";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -941,10 +941,10 @@ export async function settingsStatus() {
   const metodo = String((kino.config.get("metodo") || "auto")).trim();
   const cap = capDeCalidad();
   const calidad = cap >= 2160 ? "la mejor disponible" : "hasta " + cap + "p";
-  let texto;
-  if (metodo === "directo") texto = "Método: solo directo. Rápido, pero YouTube bloquea algunos videos.";
-  else if (metodo === "navegador") texto = "Método: solo navegador oculto. Puede tardar unos segundos en empezar.";
-  else texto = "Método automático: directo y, si sale borroso o bloqueado, navegador.";
+  let texto = "TubeKino " + VERSION + ". ";
+  if (metodo === "directo") texto = texto + "Método: solo directo. Rápido, pero YouTube bloquea algunos videos.";
+  else if (metodo === "navegador") texto = texto + "Método: solo navegador oculto. Puede tardar unos segundos en empezar.";
+  else texto = texto + "Método automático: directo y, si sale borroso o bloqueado, navegador.";
   texto = texto + " Calidad: " + calidad + ".";
   if (ultimoResolve) {
     if (ultimoResolve.vivo) texto = texto + " Último video: en vivo.";
