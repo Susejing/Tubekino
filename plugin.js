@@ -13,12 +13,15 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
 let ultimoNavegador = null;
 let ultimoResolve = null;
+
+// Diagnóstico de tendencias: por qué la portada usó el respaldo (en Estado).
+let trazaTendencias = "";
 
 // ---------- Innertube: los clientes que se presentan como apps oficiales ----------
 
@@ -107,7 +110,9 @@ async function innertube(endpoint, ctx, cuerpo) {
     headers: {
       "Content-Type": "application/json",
       "Accept-Language": "es-419,es;q=0.8",
-      "User-Agent": ctx.client.userAgent
+      "User-Agent": ctx.client.userAgent,
+      "X-YouTube-Client-Name": ctx.client.clientName === "WEB" ? "1" : ctx.client.clientName === "IOS" ? "5" : "3",
+      "X-YouTube-Client-Version": ctx.client.clientVersion
     },
     body: { json: payload },
     timeoutMs: 15000
@@ -388,11 +393,22 @@ function itemsDeRespuesta(j, limite) {
 // ---------- tendencias reales ----------
 
 // Página de tendencias: la lista "Ahora" o una categoría con su params.
+// Probamos WEB y luego ANDROID: a veces YouTube le niega una a un cliente.
 async function paginaDeTendencias(params, cursor) {
   const cuerpo = cursor ? { continuation: cursor } : { browseId: "FEtrending" };
   if (!cursor && params) cuerpo.params = params;
-  const j = await innertube("browse", ctxWeb(), cuerpo);
-  return { items: itemsDeRespuesta(j, 40), next: tokenDeContinuacion(j) || undefined };
+  let detalle = "";
+  for (let i = 0; i < 2; i++) {
+    const cx = i === 0 ? ctxWeb() : ctxAndroid();
+    try {
+      const j = await innertube("browse", cx, cuerpo);
+      return { items: itemsDeRespuesta(j, 40), next: tokenDeContinuacion(j) || undefined };
+    } catch (e) {
+      detalle = detalle + (i === 0 ? "web " : "android ") +
+        String(e && e.message ? e.message : e).slice(0, 40) + "; ";
+    }
+  }
+  throw new Error(detalle.slice(0, 140));
 }
 
 // Las pestañas de tendencias (Música, Videojuegos, Películas...) traen su
@@ -413,10 +429,24 @@ function pestanasDeTendencias(j) {
 
 export async function home() {
   const salida = [];
+  trazaTendencias = "";
 
-  // Tendencias de verdad: la lista que YouTube llama "Ahora".
-  try {
-    const j = await innertube("browse", ctxWeb(), { browseId: "FEtrending" });
+  // Tendencias de verdad: probamos WEB y luego ANDROID (a veces uno falla).
+  let j = null;
+  let viaTendencias = "";
+  for (let i = 0; i < 2 && !j; i++) {
+    const cx = i === 0 ? ctxWeb() : ctxAndroid();
+    try {
+      j = await innertube("browse", cx, { browseId: "FEtrending" });
+      viaTendencias = i === 0 ? "web" : "android";
+      trazaTendencias = "";
+    } catch (e) {
+      trazaTendencias = trazaTendencias + (i === 0 ? "web " : "android ") +
+        String(e && e.message ? e.message : e).slice(0, 45) + "; ";
+    }
+  }
+
+  if (j) {
     const ahora = itemsDeRespuesta(j, 20);
     if (ahora.length > 0) {
       salida.push({
@@ -426,6 +456,8 @@ export async function home() {
         ref: "tr:",
         genre: "tendencias"
       });
+    } else {
+      trazaTendencias = viaTendencias + " respondió sin videos";
     }
     // Categorías reales de tendencias: Música, Videojuegos, Películas...
     const pestanas = pestanasDeTendencias(j);
@@ -443,7 +475,9 @@ export async function home() {
         }
       } catch (e) { /* categoría omitida, seguimos con las demás */ }
     }
-  } catch (e) { /* tendencias no disponibles: usamos las filas de respaldo */ }
+  } else {
+    trazaTendencias = trazaTendencias.slice(0, 120);
+  }
 
   // Respaldo si lo real no llegó: filas curadas de siempre.
   if (salida.length < 2) {
@@ -917,6 +951,9 @@ export async function settingsStatus() {
     else if (ultimoResolve.altura > 0) {
       texto = texto + " Último video: " + ultimoResolve.altura + "p (" + ultimoResolve.via + ").";
     }
+  }
+  if (trazaTendencias) {
+    texto = texto + " Tendencias: " + trazaTendencias.slice(0, 60) + ".";
   }
   return { estado: texto.slice(0, 200) };
 }
