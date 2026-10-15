@@ -13,7 +13,12 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.1.1";
+const VERSION = "0.1.2";
+
+// Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
+let ultimoDirecto = null;
+let ultimoNavegador = null;
+let ultimoResolve = null;
 
 // ---------- Innertube: los clientes que se presentan como apps oficiales ----------
 
@@ -503,6 +508,7 @@ function capDeCalidad() {
 // El "itag" es el número que YouTube le pone a cada formato; en las URLs
 // capturadas por el navegador no siempre viene la altura, pero el itag sí.
 const ITAG_ALTURA = {
+  18: 360, 22: 720,
   134: 360, 133: 240, 135: 480, 136: 720, 137: 1080, 138: 2160, 160: 144,
   264: 1440, 266: 2160, 298: 720, 299: 1080,
   394: 144, 395: 240, 396: 360, 397: 480, 398: 720, 399: 1080, 400: 1440, 401: 2160
@@ -534,7 +540,7 @@ function rangoAudioDeUrl(url) {
 }
 
 // Vía directa: pedir los formatos a Innertube como app oficial.
-async function resolverDirecto(videoId) {
+async function resolverDirectoBase(videoId) {
   let detalle = "";
   const clientes = [ctxAndroid(), ctxIos()];
   for (let i = 0; i < clientes.length; i++) {
@@ -631,7 +637,7 @@ async function resolverDirecto(videoId) {
 
 // Vía navegador oculto: la página real de YouTube hace la magia (tokens
 // incluidos) y Kino nos entrega los enlaces que el reproductor generó.
-async function resolverNavegador(videoId) {
+async function resolverNavegadorBase(videoId) {
   if (!kino.browser || typeof kino.browser.capture !== "function") {
     throw kino.error("unavailable", "este Kino no trae navegador oculto");
   }
@@ -739,6 +745,30 @@ async function resolverNavegador(videoId) {
   });
 }
 
+// Envoltorios: resuelven y dejan constancia de la calidad lograda (para
+// Ajustes → Estado y para que el modo automático compare y elija).
+function infoDeStream(s) {
+  if (!s || !s.url) return { altura: 0, vivo: false };
+  if (String(s.mime || "").indexOf("mpegurl") >= 0) return { altura: 0, vivo: true };
+  return { altura: alturaDeUrl(s.url), vivo: false };
+}
+
+async function resolverDirecto(videoId) {
+  const s = await resolverDirectoBase(videoId);
+  ultimoDirecto = infoDeStream(s);
+  ultimoDirecto.via = "directo";
+  ultimoResolve = ultimoDirecto;
+  return s;
+}
+
+async function resolverNavegador(videoId) {
+  const s = await resolverNavegadorBase(videoId);
+  ultimoNavegador = infoDeStream(s);
+  ultimoNavegador.via = "navegador";
+  ultimoResolve = ultimoNavegador;
+  return s;
+}
+
 export async function resolve(ref, options) {
   const videoId = refAVideoId(ref);
   if (!videoId) throw kino.error("not_found", "ref no es un video: " + String(ref).slice(0, 60));
@@ -757,12 +787,30 @@ export async function resolve(ref, options) {
   }
   if (metodo === "navegador") return await resolverNavegador(videoId);
 
-  // Automático: directo primero; si falla (o el reproductor recibió un enlace
+  // Automático: directo primero. Si falla (o el reproductor recibió un enlace
   // vencido y Kino reintenta), navegador oculto.
   if (reintento === 0) {
+    let directo = null;
+    let alturaDirecto = 0;
     try {
-      return await resolverDirecto(videoId);
+      directo = await resolverDirecto(videoId);
+      alturaDirecto = ultimoDirecto ? ultimoDirecto.altura : 0;
     } catch (e) { /* seguimos con el navegador */ }
+
+    if (directo) {
+      // Si el directo funcionó pero quedó en calidad baja (menos de 720p),
+      // probamos el navegador oculto por si la página real consigue más.
+      const vivo = String(directo.mime || "").indexOf("mpegurl") >= 0;
+      if (!vivo && alturaDirecto > 0 && alturaDirecto < 720) {
+        try {
+          const nave = await resolverNavegador(videoId);
+          const alturaNave = ultimoNavegador ? ultimoNavegador.altura : 0;
+          if (alturaNave > alturaDirecto) return nave;
+        } catch (e) { /* nos quedamos con el directo */ }
+      }
+      ultimoResolve = ultimoDirecto;
+      return directo;
+    }
   }
   return await resolverNavegador(videoId);
 }
@@ -772,11 +820,17 @@ export async function resolve(ref, options) {
 export async function settingsStatus() {
   const metodo = String((kino.config.get("metodo") || "auto")).trim();
   const cap = capDeCalidad();
-  const calidad = cap >= 2160 ? "calidad: la mejor disponible" : "calidad: hasta " + cap + "p";
+  const calidad = cap >= 2160 ? "la mejor disponible" : "hasta " + cap + "p";
   let texto;
   if (metodo === "directo") texto = "Método: solo directo. Rápido, pero YouTube bloquea algunos videos.";
   else if (metodo === "navegador") texto = "Método: solo navegador oculto. Puede tardar unos segundos en empezar.";
-  else texto = "Método automático: directo primero y, si YouTube bloquea, navegador oculto.";
-  texto = texto + " " + calidad + ". También puedes pegar enlaces de YouTube en el buscador.";
+  else texto = "Método automático: directo y, si sale borroso o bloqueado, navegador.";
+  texto = texto + " Calidad: " + calidad + ".";
+  if (ultimoResolve) {
+    if (ultimoResolve.vivo) texto = texto + " Último video: en vivo.";
+    else if (ultimoResolve.altura > 0) {
+      texto = texto + " Último video: " + ultimoResolve.altura + "p (" + ultimoResolve.via + ").";
+    }
+  }
   return { estado: texto.slice(0, 200) };
 }
