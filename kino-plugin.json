@@ -1,7 +1,7 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Busca y reproduce videos, listas y canales de YouTube con doble estrategia: extracción directa y, cuando YouTube bloquea, el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
@@ -18,6 +18,13 @@
         { "value": "directo", "label": "Solo extracción directa" }
       ],
       "hint": "Directo es rápido; el navegador oculto abre la página real de YouTube." },
+    { "key": "calidad", "label": "Calidad máxima", "type": "select", "default": "mejor",
+      "options": [
+        { "value": "mejor", "label": "La mejor disponible" },
+        { "value": "1080", "label": "Hasta 1080p" },
+        { "value": "720", "label": "Hasta 720p (más ligero)" }
+      ],
+      "hint": "Si un video se traba mucho, baja este tope." },
     { "key": "estado", "label": "Estado", "type": "status" }
   ]
 }
