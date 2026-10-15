@@ -1,7 +1,7 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Busca y reproduce videos, listas y canales de YouTube con triple estrategia: extracción directa, respaldo en servidores de la comunidad (instancias de Invidious) para la calidad alta, y el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
@@ -42,6 +42,13 @@
         { "value": "no", "label": "No: solo YouTube directo" }
       ],
       "hint": "Instancias públicas de Invidious y Piped que consiguen la calidad alta." },
+    { "key": "busqliviana", "label": "Búsqueda liviana", "type": "select", "default": "auto",
+      "options": [
+        { "value": "auto", "label": "Automática: YouTube y luego respaldos" },
+        { "value": "si", "label": "Sí: siempre en respaldos (poca memoria)" },
+        { "value": "no", "label": "No: solo YouTube" }
+      ],
+      "hint": "En aparatos con poca RAM, 'Sí' evita los 'out of memory'." },
     { "key": "servidor", "label": "Servidor propio (opcional)", "type": "text",
       "hint": "URL de tu Invidious (ej: http://192.168.1.50:3000). Se usa primero." },
     { "key": "estado", "label": "Estado", "type": "status" }
