@@ -1,4 +1,4 @@
-// TubeKino 0.3.3 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.4 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -13,7 +13,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.3";
+const VERSION = "0.3.4";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -923,7 +923,19 @@ async function resolverDirectoBase(videoId) {
       trazaClientes.push(et + ": " + men);
     }
   }
-  // Ninguno dio calidad alta: nos quedamos con el mejor de los bajos.
+  // Ninguna app dio calidad alta: pedirle a YouTube la página real del video
+  // presentándonos como un Safari. Los Safari de verdad reciben un manifiesto
+  // HLS (m3u8) con varias calidades, sin tokens (mismo mecanismo que yt-dlp).
+  try {
+    const pag = await resolverPagina(videoId);
+    trazaClientes.push("PÁGINA: " + pag.texto + " ✓");
+    trazaDirecto = "PÁGINA " + pag.texto;
+    return pag.stream;
+  } catch (e) {
+    const men = String(e && e.message ? e.message : e).slice(0, 100);
+    trazaClientes.push("PÁGINA: " + men);
+  }
+  // Nada superó lo que ya teníamos: nos quedamos con el mejor de los bajos.
   if (mejor) {
     trazaDirecto = mejor.traza;
     return mejor.stream;
@@ -932,6 +944,107 @@ async function resolverDirectoBase(videoId) {
   const e = new Error("directo falló:" + detalle);
   e.esDirecto = true;
   throw e;
+}
+
+// Vía página: bajar la página del video como un Safari de verdad. La página
+// trae su reproductor incrustado ("ytInitialPlayerResponse") con el HLS que
+// YouTube le sirve a Safari (sin exigir tokens) y, a veces, formatos con
+// enlace directo.
+async function resolverPagina(videoId) {
+  const ua = ctxWebSafari().client.userAgent;
+  const r = await kino.fetch(
+    "https://www.youtube.com/watch?v=" + videoId + "&hl=es-419&gl=" + paisActual(),
+    {
+      method: "GET",
+      headers: { "User-Agent": ua, "Accept-Language": "es-419,es;q=0.8" },
+      timeoutMs: 20000
+    }
+  );
+  if (!r.ok) throw new Error("página http " + r.status);
+  const html = await r.text();
+  // El reproductor vive dentro de la página como JSON.
+  const m = /ytInitialPlayerResponse\s*=\s*/.exec(html);
+  if (!m) throw new Error("página sin reproductor (¿consentimiento?)");
+  const ini = html.indexOf("{", m.index);
+  if (ini < 0) throw new Error("reproductor sin JSON");
+  // Extraer el JSON completo: contar llaves respetando las cadenas con
+  // comillas y los escapes, hasta cerrar la llave que abrió.
+  let prof = 0, fin = -1, enString = false, esc = false;
+  for (let i = ini; i < html.length; i++) {
+    const c = html.charAt(i);
+    if (esc) { esc = false; continue; }
+    if (enString) {
+      if (c === "\\") esc = true;
+      else if (c === '"') enString = false;
+      continue;
+    }
+    if (c === '"') enString = true;
+    else if (c === "{") prof++;
+    else if (c === "}") { prof--; if (prof === 0) { fin = i; break; } }
+  }
+  if (fin < 0) throw new Error("reproductor cortado");
+  let j = null;
+  try { j = JSON.parse(html.slice(ini, fin + 1)); } catch (e2) { throw new Error("reproductor ilegible"); }
+  const ps = j && j.playabilityStatus;
+  if (!ps || ps.status !== "OK") {
+    throw new Error("no jugable: " + String(ps && ps.reason ? ps.reason : ps ? ps.status : "sin estado"));
+  }
+  const sd = j.streamingData;
+  if (!sd) throw new Error("sin streamingData");
+  // HLS: varias calidades en un solo manifiesto, sin tokens.
+  if (typeof sd.hlsManifestUrl === "string" && sd.hlsManifestUrl.indexOf("https://") === 0) {
+    return {
+      stream: {
+        url: sd.hlsManifestUrl,
+        mime: "application/vnd.apple.mpegurl",
+        headers: { "User-Agent": ua },
+        esVivo: !!(j.videoDetails && j.videoDetails.isLive === true)
+      },
+      texto: "HLS",
+      esHls: true
+    };
+  }
+  // Sin HLS, la página a veces trae formatos con enlace directo.
+  const cap = capDeCalidad();
+  const formats = Array.isArray(sd.formats) ? sd.formats : [];
+  const adaptive = Array.isArray(sd.adaptiveFormats) ? sd.adaptiveFormats : [];
+  const vids = [];
+  const auds = [];
+  for (let k = 0; k < adaptive.length; k++) {
+    const f = adaptive[k];
+    if (!f || typeof f.url !== "string" || f.url.indexOf("https://") !== 0) continue;
+    const mt = String(f.mimeType || "");
+    if (mt.indexOf("video/mp4") === 0 && altura(f) <= cap) vids.push(f);
+    else if (mt.indexOf("audio/mp4") === 0) auds.push(f);
+  }
+  vids.sort(function (a, b) { return altura(b) - altura(a); });
+  auds.sort(function (a, b) {
+    return (b.averageBitrate || b.bitrate || 0) - (a.averageBitrate || a.bitrate || 0);
+  });
+  if (vids.length > 0 && auds.length > 0) {
+    return {
+      stream: {
+        url: vids[0].url,
+        mime: "video/mp4",
+        headers: { "User-Agent": ua },
+        audioTracks: [{ lang: "und", url: auds[0].url }]
+      },
+      texto: altura(vids[0]) + "p+audio",
+      esHls: false
+    };
+  }
+  for (let k = 0; k < formats.length; k++) {
+    const f = formats[k];
+    if (f && typeof f.url === "string" && f.url.indexOf("https://") === 0 &&
+        String(f.mimeType || "").indexOf("video/") === 0 && tieneAudio(f) && altura(f) <= cap) {
+      return {
+        stream: { url: f.url, mime: "video/mp4", headers: { "User-Agent": ua } },
+        texto: altura(f) + "p",
+        esHls: false
+      };
+    }
+  }
+  throw new Error("sin HLS ni enlaces en la página");
 }
 
 // Vía navegador oculto: la página real de YouTube hace la magia (tokens
