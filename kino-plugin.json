@@ -1,7 +1,7 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Busca y reproduce videos, listas y canales de YouTube con triple estrategia: extracción directa, respaldo en servidores de la comunidad (instancias de Invidious) para la calidad alta, y el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
@@ -36,7 +36,7 @@
         { "value": "PE", "label": "Perú" }
       ],
       "hint": "De qué país salen los resultados de búsqueda y la portada." },
-    { "key": "respaldo", "label": "Servidores de respaldo (forks de YouTube)", "type": "select", "default": "si",
+    { "key": "respaldo", "label": "Respaldo: forks de YouTube", "type": "select", "default": "si",
       "options": [
         { "value": "si", "label": "Sí: usarlos si YouTube solo da 360p" },
         { "value": "no", "label": "No: solo YouTube directo" }
