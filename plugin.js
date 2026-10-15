@@ -1,19 +1,19 @@
-// TubeKino 0.3.5 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.6 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
-// (Innertube) para buscar y para pedir los formatos directamente, y cuando
-// YouTube los bloquea (cada vez le exige más "tokens" a los clientes no
-// oficiales), abre la página real del video en el navegador oculto de Kino:
-// el reproductor de verdad calcula lo que haga falta y el plugin captura el
-// enlace que genera, con sus encabezados. Directo es rápido; el navegador
-// oculto es la red de seguridad.
+// (Innertube) para buscar y para pedir los formatos directamente. La calidad
+// alta está en el HLS de la página del video presentándonos como un Safari
+// de verdad (un manifiesto con varias calidades) — llega por rachas, así que
+// se reintenta. Y la red de seguridad es el navegador oculto de Kino, con
+// una excepción: el reproductor web nuevo de YouTube (SABR) genera enlaces
+// internos que solo él sabe usar; si la captura trae solo eso, se descarta.
 //
 // En el buscador de Kino también puedes pegar un enlace de YouTube
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.5";
+const VERSION = "0.3.6";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -33,6 +33,17 @@ let trazaClientes = [];
 
 // Diagnóstico del navegador oculto: qué capturó y qué eligió (en "debug").
 let trazaNavegador = "";
+
+// ¿Cuántas veces seguidas la página del video llegó sin HLS? Si YouTube no
+// está entregando HLS a esta conexión, no vale la pena reintentar en cada
+// reproducción: tras varias seguidas, se pide la página una sola vez.
+let rachaPaginaSinHls = 0;
+
+// ¿Cuántas capturas del navegador seguidas trajeron solo enlaces SABR (no
+// reproducibles)? Con 3 o más ya no se intenta como mejora de calidad
+// (ahorra ~3 s por reproducción); queda solo como respaldo si el directo
+// falla del todo.
+let rachaNavegadorSabr = 0;
 
 // ---------- Innertube: los clientes que se presentan como apps oficiales ----------
 
@@ -786,10 +797,10 @@ function alturaDeUrl(url) {
 const ITAG_AUDIO = { 140: 4, 258: 3, 256: 2, 139: 1, 251: 2, 250: 2, 599: 2, 249: 1, 171: 1 };
 
 // ¿Qué es una petición capturada del reproductor de la página: video, audio
-// o nada? El reproductor moderno de YouTube (SABR) no pone mime ni itag en
-// la URL, así que la clasificación mira itag, luego mime, y como último
-// recurso acepta como video cualquier URL de videoplayback (que ya pasó el
-// filtro del navegador).
+// o nada? Mira el itag, luego el mime (campo o URL). Sin ninguna de las dos
+// son los enlaces internos de SABR: solo sirven con peticiones POST que hace
+// el reproductor web de YouTube, así que Kino no puede reproducirlos y NO se
+// aceptan (aceptarlos da "video dañado").
 function clasificaMedia(m) {
   const it = itagDeUrl(m.url);
   if (ITAG_AUDIO[it]) return "audio";
@@ -798,7 +809,6 @@ function clasificaMedia(m) {
   if (m.mime && String(m.mime).indexOf("video/") === 0) return "video";
   if (/(mime=|mime%3D|mime\/)audio/i.test(m.url)) return "audio";
   if (/(mime=|mime%3D|mime\/)video/i.test(m.url)) return "video";
-  if (String(m.url).indexOf("videoplayback") >= 0) return "video";
   return "";
 }
 
@@ -807,6 +817,19 @@ function rangoAudioDeUrl(url) {
   const m = s.match(/average_bitrate(?:=|\/)(\d+)/i) || s.match(/bitrate(?:=|\/)(\d+)/i);
   if (m) return parseInt(m[1], 10);
   return (ITAG_AUDIO[itagDeUrl(s)] || 0) * 1000;
+}
+
+// Esperar entre reintentos. A prueba de entornos restringidos: si no hay
+// setTimeout o lo rechaza, se sigue sin esperar (nunca revienta la vía).
+function esperar(ms) {
+  if (typeof setTimeout !== "function") return Promise.resolve();
+  return new Promise(function (res) {
+    try {
+      setTimeout(res, ms);
+    } catch (e) {
+      res();
+    }
+  }).catch(function () { });
 }
 
 // Vía directa: pedir los formatos a Innertube como app oficial.
@@ -949,14 +972,33 @@ async function resolverDirectoBase(videoId) {
   // Ninguna app dio calidad alta: pedirle a YouTube la página real del video
   // presentándonos como un Safari. Los Safari de verdad reciben un manifiesto
   // HLS (m3u8) con varias calidades, sin tokens (mismo mecanismo que yt-dlp).
-  try {
-    const pag = await resolverPagina(videoId);
-    trazaClientes.push("PÁGINA: " + pag.texto + " ✓");
-    trazaDirecto = "PÁGINA " + pag.texto;
-    return pag.stream;
-  } catch (e) {
-    const men = String(e && e.message ? e.message : e).slice(0, 100);
-    trazaClientes.push("PÁGINA: " + men);
+  // El HLS llega por rachas (a veces la página viene sin él), así que se
+  // reintenta un par de veces; si esta conexión lleva varios videos seguidos
+  // sin HLS, un solo intento para no frenar cada reproducción.
+  const intentosPagina = rachaPaginaSinHls >= 4 ? 1 : 3;
+  let mejorPag = null;
+  for (let intento = 1; intento <= intentosPagina; intento++) {
+    try {
+      const pag = await resolverPagina(videoId);
+      if (pag.esHls) {
+        rachaPaginaSinHls = 0;
+        trazaClientes.push("PÁGINA (" + intento + "/" + intentosPagina + "): HLS ✓");
+        trazaDirecto = "PÁGINA HLS";
+        return pag.stream;
+      }
+      rachaPaginaSinHls++;
+      trazaClientes.push("PÁGINA (" + intento + "/" + intentosPagina + "): " + pag.texto + " (sin HLS)");
+      if (!mejorPag || (pag.altura || 0) > (mejorPag.altura || 0)) mejorPag = pag;
+    } catch (e) {
+      const men = String(e && e.message ? e.message : e).slice(0, 100);
+      rachaPaginaSinHls++;
+      trazaClientes.push("PÁGINA (" + intento + "/" + intentosPagina + "): " + men);
+    }
+    if (intento < intentosPagina) await esperar(1200);
+  }
+  if (mejorPag && (!mejor || (mejorPag.altura || 0) > mejor.altura)) {
+    trazaDirecto = "PÁGINA " + mejorPag.texto;
+    return mejorPag.stream;
   }
   // Nada superó lo que ya teníamos: nos quedamos con el mejor de los bajos.
   if (mejor) {
@@ -1024,7 +1066,8 @@ async function resolverPagina(videoId) {
         esVivo: !!(j.videoDetails && j.videoDetails.isLive === true)
       },
       texto: "HLS",
-      esHls: true
+      esHls: true,
+      altura: 720
     };
   }
   // Sin HLS, la página a veces trae formatos con enlace directo.
@@ -1053,7 +1096,8 @@ async function resolverPagina(videoId) {
         audioTracks: [{ lang: "und", url: auds[0].url }]
       },
       texto: altura(vids[0]) + "p+audio",
-      esHls: false
+      esHls: false,
+      altura: altura(vids[0])
     };
   }
   for (let k = 0; k < formats.length; k++) {
@@ -1063,7 +1107,8 @@ async function resolverPagina(videoId) {
       return {
         stream: { url: f.url, mime: "video/mp4", headers: { "User-Agent": ua } },
         texto: altura(f) + "p",
-        esHls: false
+        esHls: false,
+        altura: altura(f)
       };
     }
   }
@@ -1128,6 +1173,7 @@ async function resolverNavegadorBase(videoId) {
   // En vivo: manifiesto HLS.
   for (let i = 0; i < limpias.length; i++) {
     if (/\.m3u8/i.test(limpias[i].url)) {
+      rachaNavegadorSabr = 0;
       trazaNavegador = trazaNavegador + "; HLS (en vivo)";
       const s = { url: limpias[i].url, mime: "application/vnd.apple.mpegurl", esVivo: true };
       if (limpias[i].headers) s.headers = limpias[i].headers;
@@ -1146,6 +1192,7 @@ async function resolverNavegadorBase(videoId) {
   }
 
   if (vids.length > 0) {
+    rachaNavegadorSabr = 0;
     // Preferir mp4 sobre webm y, entre los mp4, la mejor altura dentro del tope.
     const cap = capDeCalidad();
     const mp4 = [];
@@ -1186,9 +1233,12 @@ async function resolverNavegadorBase(videoId) {
     return stream;
   }
 
-  trazaNavegador = trazaNavegador + "; sin pistas de video en la captura";
-  throw kino.error("not_found", "captura sin video (" + trazaNavegador.slice(0, 120) + ")", {
-    userMessage: "No se encontró el enlace del video. Inténtalo de nuevo en un momento."
+  // Nada utilizable: la captura trajo solo enlaces SABR (o nada). No se
+  // devuelven: Kino no puede reproducirlos (daría "video dañado").
+  rachaNavegadorSabr++;
+  trazaNavegador = trazaNavegador + "; solo SABR (no reproducible)";
+  throw kino.error("not_found", "captura sin enlaces utilizables (" + trazaNavegador.slice(0, 120) + ")", {
+    userMessage: "El reproductor de YouTube solo entregó enlaces internos (SABR) que Kino no puede reproducir. Deja el método en Automático."
   });
 }
 
@@ -1252,14 +1302,18 @@ export async function resolve(ref, options) {
       // probamos el navegador oculto por si la página real consigue más.
       const vivo = String(directo.mime || "").indexOf("mpegurl") >= 0;
       if (!vivo && alturaDirecto > 0 && alturaDirecto < 720) {
-        try {
-          const nave = await resolverNavegador(videoId);
-          const alturaNave = ultimoNavegador ? ultimoNavegador.altura : 0;
-          if (alturaNave > alturaDirecto) return nave;
-          trazaDirecto = trazaDirecto + "; navegador " + (alturaNave || 0) + "p";
-        } catch (e) {
-          trazaDirecto = trazaDirecto + "; navegador falló" +
-            (e && e.code ? " (" + e.code + ")" : "");
+        if (rachaNavegadorSabr >= 3) {
+          // La captura solo ha traído SABR: no gastar ~3 s en cada reproducción.
+          trazaDirecto = trazaDirecto + "; navegador omitido (solo SABR)";
+        } else {
+          try {
+            const nave = await resolverNavegador(videoId);
+            const alturaNave = ultimoNavegador ? ultimoNavegador.altura : 0;
+            if (alturaNave > alturaDirecto) return nave;
+            trazaDirecto = trazaDirecto + "; navegador " + (alturaNave || 0) + "p";
+          } catch (e) {
+            trazaDirecto = trazaDirecto + "; navegador sin enlaces utilizables";
+          }
         }
       }
       ultimoResolve = ultimoDirecto;
