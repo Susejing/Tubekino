@@ -1,7 +1,7 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Busca y reproduce videos, listas y canales de YouTube con doble estrategia: extracción directa y, cuando YouTube bloquea, el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
@@ -25,6 +25,17 @@
         { "value": "720", "label": "Hasta 720p (más ligero)" }
       ],
       "hint": "Si un video se traba mucho, baja este tope." },
+    { "key": "pais", "label": "País de tendencias", "type": "select", "default": "CO",
+      "options": [
+        { "value": "CO", "label": "Colombia" },
+        { "value": "MX", "label": "México" },
+        { "value": "US", "label": "Estados Unidos" },
+        { "value": "ES", "label": "España" },
+        { "value": "AR", "label": "Argentina" },
+        { "value": "CL", "label": "Chile" },
+        { "value": "PE", "label": "Perú" }
+      ],
+      "hint": "De dónde salen las tendencias y las recomendaciones." },
     { "key": "estado", "label": "Estado", "type": "status" }
   ]
 }
