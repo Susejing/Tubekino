@@ -16,7 +16,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.7";
+const VERSION = "0.3.8";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -1518,4 +1518,4 @@ export async function settingsStatus() {
   }
   texto = texto + " Detalle: busca 'debug'.";
   return { estado: texto.slice(0, 200) };
-}
+            }
