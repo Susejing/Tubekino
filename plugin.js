@@ -1,4 +1,4 @@
-// TubeKino 0.3.10 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.11 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -16,12 +16,16 @@
 // resuelven los tokens anti-bot en sus servidores y entregan un enlace
 // de calidad alta. Son ~20 instancias: si una está caída, se pasa a la
 // siguiente y la que funciona se recuerda para el próximo video.
+// Los respaldos también saben buscar: si la memoria del aparato no aguanta
+// las respuestas grandes de la búsqueda de YouTube ("out of memory"), se
+// busca en ellos — sus respuestas son livianas — y tras un rato sin
+// revientes, YouTube vuelve a ser el primero.
 //
 // En el buscador de Kino también puedes pegar un enlace de YouTube
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.10";
+const VERSION = "0.3.11";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -31,6 +35,19 @@ let ultimoResolve = null;
 // Diagnóstico de la portada: cuántas filas se pudieron armar (en Estado y en
 // el informe "debug").
 let trazaTendencias = "";
+
+// Diagnóstico de búsqueda: qué camino sirvió la última búsqueda (en "debug").
+let trazaBusqueda = "";
+
+// ¿Cuántas búsquedas de YouTube seguidas reventaron por memoria? A la
+// tercera, se busca directo en los respaldos (respuestas livianas) durante
+// media hora; después YouTube vuelve a ser el primero.
+let rachaBusqMem = 0;
+let ultBusqMem = 0;
+
+// La instancia de respaldo que sirvió la última búsqueda ("base|api").
+let busquedaBuena = "";
+let cursorBusqueda = 0; // por cuál instancia de búsqueda vamos (rotar si caen)
 
 // Diagnóstico de reproducción: por dónde y en qué calidad salió el video.
 let trazaDirecto = "";
@@ -519,21 +536,179 @@ async function itemDeId(id) {
   return item;
 }
 
-async function buscarVideos(query, cursor, limite) {
-  const cx = ctxAndroid();
-  const cuerpo = cursor ? { continuation: cursor } : { query: query };
-  const j = await innertube("search", cx, cuerpo);
-  const hits = juntar(j, ["videoRenderer", "videoWithContextRenderer", "gridVideoRenderer", "compactVideoRenderer"]);
-  const items = [];
-  const vistos = {};
-  for (let i = 0; i < hits.length; i++) {
-    const item = itemDeVideo(hits[i].datos);
-    if (!item || vistos[item.id]) continue;
-    vistos[item.id] = 1;
-    items.push(item);
-    if (items.length >= limite) break;
+// ---------- búsqueda liviana en los respaldos ----------
+// A este aparato la memoria le queda corta para las respuestas grandes de la
+// búsqueda de YouTube (revienta con "out of memory" aunque lo demás vaya
+// bien, incluso recién reiniciado). Las instancias de los forks también
+// buscan por ti y sus respuestas son muchísimo más livianas: solo una lista
+// de videos. Si la búsqueda de YouTube revienta por memoria, se busca aquí;
+// y con 3 revientes seguidos, se va directo aquí (media hora; luego YouTube
+// vuelve a ser el primero).
+
+// ¿El error es de memoria? (así lo dice Kino: "out of memory").
+function esErrorMemoria(e) {
+  return /memory/i.test(String(e && e.message ? e.message : e));
+}
+
+// ¿Le toca a YouTube buscar? Con 3 revientes seguidos de memoria no vale la
+// pena gastar el aparato: respaldos directo. Pasada media hora, otra oportunidad.
+function youtubeBuscable() {
+  if (rachaBusqMem < 3) return true;
+  if (Date.now() - ultBusqMem > 1800000) {
+    rachaBusqMem = 0;
+    return true;
   }
-  return { items: items, next: tokenDeContinuacion(j) };
+  return false;
+}
+
+function notaBusqMemoria(e) {
+  rachaBusqMem = rachaBusqMem + 1;
+  ultBusqMem = Date.now();
+  trazaBusqueda = "YouTube: " + String(e && e.message ? e.message : e).slice(0, 60) + " → respaldos";
+}
+
+// El poster más grande de una lista de miniaturas (Invidious las trae peladas).
+function mejorThumbLista(arr) {
+  if (!Array.isArray(arr)) return null;
+  let mejor = null;
+  let ancho = -1;
+  for (let i = 0; i < arr.length; i++) {
+    const t = arr[i];
+    if (t && typeof t.url === "string" && t.url.indexOf("http") === 0 && (t.width || 0) >= ancho) {
+      mejor = t.url;
+      ancho = t.width || 0;
+    }
+  }
+  return mejor;
+}
+
+function itemDeRespaldo(id, titulo, poster, segundos, vivo) {
+  const item = {
+    id: "yt.v." + id,
+    ref: "v:" + id,
+    title: String(titulo || "Video"),
+    kind: "movie"
+  };
+  if (poster) item.poster = poster;
+  if (vivo) item.badges = ["EN VIVO"];
+  else if (segundos > 0) item.runtimeMinutes = Math.max(1, Math.round(segundos / 60));
+  return item;
+}
+
+// Le pide la búsqueda a una instancia (Invidious o Piped).
+async function pedirBusqueda(ent, q, pagina, limite) {
+  const cab = {
+    "Accept": "application/json",
+    "User-Agent": ctxWeb().client.userAgent,
+    "Accept-Language": "es-419,es;q=0.8"
+  };
+  if (ent.api === "piped") {
+    if (pagina > 1) return []; // Piped solo entrega la primera página.
+    const j = await fetchJson(ent.base + "/search?q=" + encodeURIComponent(q) + "&filter=videos", {
+      method: "GET", headers: cab, timeoutMs: 6000
+    });
+    const arr = Array.isArray(j && j.items) ? j.items : [];
+    const items = [];
+    for (let k = 0; k < arr.length && items.length < limite; k++) {
+      const s = arr[k];
+      const m = /(?:\?v=|\/watch\/)([A-Za-z0-9_-]{11})/.exec(String(s && s.url || ""));
+      if (!m) continue;
+      items.push(itemDeRespaldo(m[1], s.title, typeof s.thumbnail === "string" ? s.thumbnail : null, s.durationSeconds || 0, false));
+    }
+    return items;
+  }
+  // Invidious: una página de resultados por vez (para el "Ver más").
+  const j = await fetchJson(ent.base + "/api/v1/search?q=" + encodeURIComponent(q) + "&type=video&page=" + pagina, {
+    method: "GET", headers: cab, timeoutMs: 6000
+  });
+  const arr = Array.isArray(j) ? j : [];
+  const items = [];
+  for (let k = 0; k < arr.length && items.length < limite; k++) {
+    const v = arr[k];
+    if (!v || typeof v.videoId !== "string" || v.videoId.length !== 11) continue;
+    items.push(itemDeRespaldo(v.videoId, v.title, mejorThumbLista(v.videoThumbnails), v.lengthSeconds || 0, v.liveNow === true));
+  }
+  return items;
+}
+
+// Busca en los respaldos (a lo sumo 3 instancias; la que sirve se recuerda).
+async function buscarRespaldo(q, cursor, limite) {
+  const propio = String(kino.config.get("servidor") || "").trim().replace(/\/+$/, "");
+  const usarPublicos = String(kino.config.get("respaldo") || "si").trim() !== "no";
+  if (!propio && !usarPublicos) throw new Error("respaldo desactivado");
+  // La página de resultados viene en el cursor ("bs:2" = página 2).
+  let pagina = 1;
+  if (typeof cursor === "string" && cursor.indexOf("bs:") === 0) {
+    const p = parseInt(cursor.slice(3), 10);
+    if (p >= 1 && !isNaN(p)) pagina = p;
+  }
+  const lista = [];
+  if (propio) lista.push({ base: propio, api: "invidious", propio: true });
+  if (usarPublicos) {
+    if (busquedaBuena) {
+      const sep = busquedaBuena.indexOf("|");
+      lista.push({ base: busquedaBuena.slice(0, sep), api: busquedaBuena.slice(sep + 1), propio: false });
+    }
+    for (let i = 0; i < POOL.length; i++) {
+      const ent = POOL[(cursorBusqueda + i) % POOL.length];
+      let repetido = false;
+      for (let k = 0; k < lista.length; k++) {
+        if (lista[k].base === ent.base && lista[k].api === ent.api) { repetido = true; break; }
+      }
+      if (!repetido) lista.push({ base: ent.base, api: ent.api, propio: false });
+    }
+  }
+  const intentos = [];
+  let probados = 0;
+  for (let i = 0; i < lista.length && probados < 3; i++) {
+    const ent = lista[i];
+    const corto = ent.base.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    probados++;
+    try {
+      const items = await pedirBusqueda(ent, q, pagina, limite);
+      busquedaBuena = ent.base + "|" + ent.api;
+      trazaBusqueda = corto + " (" + ent.api + ", búsqueda liviana): " + items.length + " resultados";
+      return { items: items, next: items.length > 0 ? "bs:" + (pagina + 1) : null };
+    } catch (e) {
+      intentos.push(corto + ": " + String(e && e.message ? e.message : e).slice(0, 50));
+      if (!ent.propio) cursorBusqueda = (cursorBusqueda + 1) % POOL.length;
+    }
+  }
+  trazaBusqueda = "respaldos cayeron: " + intentos.join("; ").slice(0, 120);
+  throw new Error("búsqueda en respaldos: " + intentos.join("; ").slice(0, 120));
+}
+
+async function buscarVideos(query, cursor, limite) {
+  // "bs:N" viene de una búsqueda liviana anterior: seguir en los respaldos.
+  if (typeof cursor === "string" && cursor.indexOf("bs:") === 0) {
+    return await buscarRespaldo(query, cursor, limite);
+  }
+  if (youtubeBuscable()) {
+    try {
+      const cx = ctxAndroid();
+      const cuerpo = cursor ? { continuation: cursor } : { query: query };
+      const j = await innertube("search", cx, cuerpo);
+      const hits = juntar(j, ["videoRenderer", "videoWithContextRenderer", "gridVideoRenderer", "compactVideoRenderer"]);
+      const items = [];
+      const vistos = {};
+      for (let i = 0; i < hits.length; i++) {
+        const item = itemDeVideo(hits[i].datos);
+        if (!item || vistos[item.id]) continue;
+        vistos[item.id] = 1;
+        items.push(item);
+        if (items.length >= limite) break;
+      }
+      rachaBusqMem = 0;
+      trazaBusqueda = "YouTube directo (" + items.length + " resultados)";
+      return { items: items, next: tokenDeContinuacion(j) };
+    } catch (e) {
+      if (!esErrorMemoria(e)) throw e;
+      notaBusqMemoria(e);
+    }
+  } else {
+    trazaBusqueda = "YouTube en reposo (memoria): respaldos";
+  }
+  return await buscarRespaldo(query, null, limite);
 }
 
 // El informe de diagnóstico como resultados de búsqueda: cada línea es un
@@ -568,6 +743,7 @@ function informeDebug() {
     : "(no usado)"));
   lineas.push("Detalle navegador: " + (trazaNavegador || "(sin capturas todavía)"));
   lineas.push("Respaldos (forks): " + (trazaRespaldos || "(sin intentos todavía)"));
+  lineas.push("Búsqueda: " + (trazaBusqueda || "(aún no se ha buscado)"));
   lineas.push("Portada: " + (trazaTendencias || "(la portada aún no se ha abierto)"));
   const items = [];
   for (let i = 0; i < lineas.length; i++) {
@@ -605,8 +781,24 @@ export async function search(query) {
   }
 
   // Búsqueda normal: videos, y también canales y listas que coincidan.
-  const j = await innertube("search", ctxAndroid(), { query: q });
-  return itemsDeRespuesta(j, 30);
+  // Si la memoria no aguanta la respuesta de YouTube, los respaldos buscan
+  // (sus respuestas son livianas); tras un rato sin revientes, YouTube vuelve.
+  if (youtubeBuscable()) {
+    try {
+      const j = await innertube("search", ctxAndroid(), { query: q });
+      const items = itemsDeRespuesta(j, 30);
+      rachaBusqMem = 0;
+      trazaBusqueda = "YouTube directo (" + items.length + " resultados)";
+      return items;
+    } catch (e) {
+      if (!esErrorMemoria(e)) throw e;
+      notaBusqMemoria(e);
+    }
+  } else {
+    trazaBusqueda = "YouTube en reposo (memoria): respaldos";
+  }
+  const r = await buscarRespaldo(q, null, 30);
+  return r.items;
 }
 
 // Convierte una respuesta de búsqueda en items de Kino: videos, canales y listas.
@@ -1616,4 +1808,4 @@ export async function settingsStatus() {
   }
   texto = texto + " Detalle: busca 'debug'.";
   return { estado: texto.slice(0, 200) };
-      }
+        }
