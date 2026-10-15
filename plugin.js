@@ -13,7 +13,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -22,6 +22,9 @@ let ultimoResolve = null;
 
 // Diagnóstico de tendencias: por qué la portada usó el respaldo (en Estado).
 let trazaTendencias = "";
+
+// Diagnóstico de reproducción: por dónde y en qué calidad salió el video.
+let trazaDirecto = "";
 
 // ---------- Innertube: los clientes que se presentan como apps oficiales ----------
 
@@ -82,6 +85,24 @@ function ctxWeb() {
   };
 }
 
+// Cliente ANDROID_VR (la app de YouTube en visores): YouTube le entrega la
+// lista completa de formatos con enlaces incluidos, hasta 1080p y más.
+function ctxVr() {
+  return {
+    key: KEY_ANDROID,
+    client: {
+      clientName: "ANDROID_VR",
+      clientVersion: "1.62.27",
+      androidSdkVersion: 32,
+      osName: "Android",
+      osVersion: "12",
+      hl: "es-419",
+      gl: paisActual(),
+      userAgent: "com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12; GB) gzip"
+    }
+  };
+}
+
 // ---------- helpers de red (el mismo patrón que ya funciona en AniTrack/FlixTrack) ----------
 
 async function fetchJson(url, options) {
@@ -90,7 +111,19 @@ async function fetchJson(url, options) {
     let detalle = "http " + r.status;
     try {
       const cuerpo = await r.text();
-      if (cuerpo) detalle = detalle + " " + String(cuerpo).slice(0, 200);
+      if (cuerpo) {
+        // Si YouTube explica el error en JSON, quedarnos con el mensaje.
+        try {
+          const j = JSON.parse(cuerpo);
+          const msg = j && j.error && typeof j.error.message === "string" && j.error.message
+            ? j.error.message
+            : (j && j.error && typeof j.error.status === "string" ? j.error.status : "");
+          detalle = msg ? detalle + " " + String(msg).slice(0, 120)
+                        : detalle + " " + String(cuerpo).slice(0, 120);
+        } catch (e2) {
+          detalle = detalle + " " + String(cuerpo).slice(0, 120);
+        }
+      }
     } catch (e2) { /* sin cuerpo legible */ }
     const e = new Error(detalle);
     e.status = r.status;
@@ -398,13 +431,13 @@ async function paginaDeTendencias(params, cursor) {
   const cuerpo = cursor ? { continuation: cursor } : { browseId: "FEtrending" };
   if (!cursor && params) cuerpo.params = params;
   let detalle = "";
-  for (let i = 0; i < 2; i++) {
-    const cx = i === 0 ? ctxWeb() : ctxAndroid();
+  const ctxs = [ctxWeb(), ctxAndroid(), ctxVr()];
+  for (let i = 0; i < ctxs.length; i++) {
     try {
-      const j = await innertube("browse", cx, cuerpo);
+      const j = await innertube("browse", ctxs[i], cuerpo);
       return { items: itemsDeRespuesta(j, 40), next: tokenDeContinuacion(j) || undefined };
     } catch (e) {
-      detalle = detalle + (i === 0 ? "web " : "android ") +
+      detalle = detalle + ["web ", "android ", "vr "][i] +
         String(e && e.message ? e.message : e).slice(0, 40) + "; ";
     }
   }
@@ -431,17 +464,17 @@ export async function home() {
   const salida = [];
   trazaTendencias = "";
 
-  // Tendencias de verdad: probamos WEB y luego ANDROID (a veces uno falla).
+  // Tendencias de verdad: probamos WEB, ANDROID y la app VR (a veces uno falla).
   let j = null;
   let viaTendencias = "";
-  for (let i = 0; i < 2 && !j; i++) {
-    const cx = i === 0 ? ctxWeb() : ctxAndroid();
+  const clientesTendencias = [ctxWeb(), ctxAndroid(), ctxVr()];
+  for (let i = 0; i < clientesTendencias.length && !j; i++) {
     try {
-      j = await innertube("browse", cx, { browseId: "FEtrending" });
-      viaTendencias = i === 0 ? "web" : "android";
+      j = await innertube("browse", clientesTendencias[i], { browseId: "FEtrending" });
+      viaTendencias = ["web", "android", "vr"][i];
       trazaTendencias = "";
     } catch (e) {
-      trazaTendencias = trazaTendencias + (i === 0 ? "web " : "android ") +
+      trazaTendencias = trazaTendencias + ["web ", "android ", "vr "][i] +
         String(e && e.message ? e.message : e).slice(0, 45) + "; ";
     }
   }
@@ -664,10 +697,9 @@ function rangoAudioDeUrl(url) {
 // Vía directa: pedir los formatos a Innertube como app oficial.
 async function resolverDirectoBase(videoId) {
   let detalle = "";
-  // IPhone primero: su respuesta trae el manifiesto HLS, que YouTube entrega
-  // completo (con calidades de hasta 1080p) sin pedir los tokens que sí le
-  // exige a los enlaces directos de alta calidad.
-  const clientes = [ctxIos(), ctxAndroid()];
+  // IPhone primero (trae el manifiesto HLS con calidades altas), luego la app
+  // de YouTube VR (formatos completos con enlaces), y Android de respaldo.
+  const clientes = [ctxIos(), ctxVr(), ctxAndroid()];
   for (let i = 0; i < clientes.length; i++) {
     const cx = clientes[i];
     let j = null;
@@ -688,6 +720,7 @@ async function resolverDirectoBase(videoId) {
     // Manifiesto HLS: no necesita tokens y trae varias calidades. Es la vía
     // de calidad del cliente de iPhone (también cubre los en vivo).
     if (typeof sd.hlsManifestUrl === "string" && sd.hlsManifestUrl.indexOf("https://") === 0) {
+      trazaDirecto = cx.client.clientName + " HLS";
       return {
         url: sd.hlsManifestUrl,
         mime: "application/vnd.apple.mpegurl",
@@ -732,6 +765,7 @@ async function resolverDirectoBase(videoId) {
     // Mejor calidad: video HD por un lado + audio por el otro; Kino los une.
     if (vids.length > 0 && auds.length > 0 &&
         (completos.length === 0 || altura(vids[0]) > altura(completos[0]))) {
+      trazaDirecto = cx.client.clientName + " " + altura(vids[0]) + "p+audio";
       return {
         url: vids[0].url,
         mime: "video/mp4",
@@ -741,6 +775,7 @@ async function resolverDirectoBase(videoId) {
     }
     // Si no hay nada mejor que el combinado, usamos el combinado.
     if (completos.length > 0) {
+      trazaDirecto = cx.client.clientName + " " + altura(completos[0]) + "p";
       return {
         url: completos[0].url,
         mime: "video/mp4",
@@ -749,6 +784,7 @@ async function resolverDirectoBase(videoId) {
     }
     // Última oportunidad: adaptativo aunque falte la pista de audio.
     if (vids.length > 0) {
+      trazaDirecto = cx.client.clientName + " " + altura(vids[0]) + "p sin audio";
       return {
         url: vids[0].url,
         mime: "video/mp4",
@@ -757,6 +793,7 @@ async function resolverDirectoBase(videoId) {
     }
     detalle = detalle + " [" + cx.client.clientName + ": sin formatos utilizables]";
   }
+  trazaDirecto = "falla: " + detalle.slice(0, 80);
   const e = new Error("directo falló:" + detalle);
   e.esDirecto = true;
   throw e;
@@ -936,7 +973,10 @@ export async function resolve(ref, options) {
           const nave = await resolverNavegador(videoId);
           const alturaNave = ultimoNavegador ? ultimoNavegador.altura : 0;
           if (alturaNave > alturaDirecto) return nave;
-        } catch (e) { /* nos quedamos con el directo */ }
+          trazaDirecto = trazaDirecto + "; navegador " + (alturaNave || 0) + "p";
+        } catch (e) {
+          trazaDirecto = trazaDirecto + "; navegador falló";
+        }
       }
       ultimoResolve = ultimoDirecto;
       return directo;
@@ -952,19 +992,23 @@ export async function settingsStatus() {
   const cap = capDeCalidad();
   const calidad = cap >= 2160 ? "la mejor disponible" : "hasta " + cap + "p";
   let texto = "TubeKino " + VERSION + ". ";
-  if (metodo === "directo") texto = texto + "Método: solo directo. Rápido, pero YouTube bloquea algunos videos.";
-  else if (metodo === "navegador") texto = texto + "Método: solo navegador oculto. Puede tardar unos segundos en empezar.";
-  else texto = texto + "Método automático: directo y, si sale borroso o bloqueado, navegador.";
+  if (metodo === "directo") texto = texto + "Método: solo directo (rápido, YouTube bloquea algunos).";
+  else if (metodo === "navegador") texto = texto + "Método: solo navegador oculto (tarda un poco más).";
+  else texto = texto + "Auto: directo y, si sale borroso o bloqueado, navegador.";
   texto = texto + " Calidad: " + calidad + ".";
   if (ultimoResolve) {
-    if (ultimoResolve.vivo) texto = texto + " Último video: en vivo.";
-    else if (ultimoResolve.hls) texto = texto + " Último video: HLS (" + ultimoResolve.via + ").";
+    if (ultimoResolve.vivo) texto = texto + " Último: en vivo.";
+    else if (ultimoResolve.hls) texto = texto + " Último: HLS (" + ultimoResolve.via + ").";
     else if (ultimoResolve.altura > 0) {
-      texto = texto + " Último video: " + ultimoResolve.altura + "p (" + ultimoResolve.via + ").";
+      texto = texto + " Último: " + ultimoResolve.altura + "p (" + ultimoResolve.via + ").";
     }
   }
   if (trazaTendencias) {
-    texto = texto + " Tendencias: " + trazaTendencias.slice(0, 60) + ".";
+    texto = texto + " Tendencias: " + trazaTendencias.slice(0, 70) + ".";
+  }
+  if (ultimoResolve && ultimoResolve.via === "directo" && !ultimoResolve.hls &&
+      ultimoResolve.altura > 0 && ultimoResolve.altura < 720 && trazaDirecto) {
+    texto = texto + " Directo: " + trazaDirecto.slice(0, 45) + ".";
   }
   return { estado: texto.slice(0, 200) };
 }
