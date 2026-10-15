@@ -1,0 +1,1459 @@
+[
+ {
+  "key": "[\"POST\",\"http://192.168.1.10:8096/auth\",\"{\\\"user\\\":\\\"ana\\\",\\\"password\\\":\\\"s3cr3t\\\"}\"]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "44"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:22 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJ0b2tlbiI6ImFkODZmZWU4MjY1OWU2NTUwZjZkYzUzNWE0YTUzZGMwIn0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=50&q=prueba\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "539"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:22 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJ2MSIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiVmlkZW8gZGUgcHJ1ZWJhIDEiLCJ5ZWFyIjoyMDI0LCJvdmVydmlldyI6IlRyZXMgc2VndW5kb3MgZGUgaW1hZ2VuIGRlIHBydWViYTogc2UgcmVwcm9kdWNlIHkgc2UgZGVzY2FyZ2EuIiwiZ2VucmVzIjpbIlBydWViYXMiXSwicnVudGltZSI6MSwiYmFkZ2VzIjpbIkhEIl0sInF1YWxpdHkiOiIxMDgwcCIsImxhbmciOiJlcyJ9LHsiaWQiOiJhZHVsdG8iLCJraW5kIjoibW92aWUiLCJ0aXRsZSI6IkNvbnRlbmlkbyAxOCsgKHBydWViYSkiLCJ5ZWFyIjoyMDI2LCJnZW5yZXMiOlsiQWR1bHRvcyJdLCJhZHVsdCI6dHJ1ZX0seyJpZCI6InNlcmllLXQxIiwia2luZCI6InNlcmllcyIsInRpdGxlIjoiU2VyaWUgZGUgcHJ1ZWJhIiwieWVhciI6MjAyNSwiZ2VucmVzIjpbIkRyYW1hIl19LHsiaWQiOiJzZXJpZS10MiIsImtpbmQiOiJzZXJpZXMiLCJ0aXRsZSI6IlNlcmllIGRlIHBydWViYSAoVGVtcG9yYWRhIDIpIiwieWVhciI6MjAyNiwiZ2VucmVzIjpbIkRyYW1hIl19XX0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=50&q=Serie%20de%20prueba\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "539"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:22 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJ2MSIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiVmlkZW8gZGUgcHJ1ZWJhIDEiLCJ5ZWFyIjoyMDI0LCJvdmVydmlldyI6IlRyZXMgc2VndW5kb3MgZGUgaW1hZ2VuIGRlIHBydWViYTogc2UgcmVwcm9kdWNlIHkgc2UgZGVzY2FyZ2EuIiwiZ2VucmVzIjpbIlBydWViYXMiXSwicnVudGltZSI6MSwiYmFkZ2VzIjpbIkhEIl0sInF1YWxpdHkiOiIxMDgwcCIsImxhbmciOiJlcyJ9LHsiaWQiOiJhZHVsdG8iLCJraW5kIjoibW92aWUiLCJ0aXRsZSI6IkNvbnRlbmlkbyAxOCsgKHBydWViYSkiLCJ5ZWFyIjoyMDI2LCJnZW5yZXMiOlsiQWR1bHRvcyJdLCJhZHVsdCI6dHJ1ZX0seyJpZCI6InNlcmllLXQxIiwia2luZCI6InNlcmllcyIsInRpdGxlIjoiU2VyaWUgZGUgcHJ1ZWJhIiwieWVhciI6MjAyNSwiZ2VucmVzIjpbIkRyYW1hIl19LHsiaWQiOiJzZXJpZS10MiIsImtpbmQiOiJzZXJpZXMiLCJ0aXRsZSI6IlNlcmllIGRlIHBydWViYSAoVGVtcG9yYWRhIDIpIiwieWVhciI6MjAyNiwiZ2VucmVzIjpbIkRyYW1hIl19XX0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=50&kind=movie&q=doblaje\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "226"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJkb2JsYWplIiwia2luZCI6Im1vdmllIiwidGl0bGUiOiJQZWzDrWN1bGEgY29uIGRvYmxhamUiLCJ5ZWFyIjoyMDI1LCJvdmVydmlldyI6IlVuIHRvbm8gZ3JhdmUgcHJvcGlvIHkgdW4gZG9ibGFqZSBhcGFydGUsIHVuIHBpdGlkbyBhZ3VkbywgcGFyYSBlbGVnaXIgZW4gZWwgbWVuw7ogZGUgYXVkaW8uIiwiZ2VucmVzIjpbIlBydWViYXMiXSwicnVudGltZSI6MX1dfQ=="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=50&genre=animacion&q=bunny\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "285"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJiYmIiLCJraW5kIjoibW92aWUiLCJ0aXRsZSI6IkJpZyBCdWNrIEJ1bm55IiwieWVhciI6MjAwOCwidG1kYiI6MTAzNzgsImltZGIiOiJ0dDEyNTQyMDciLCJvdmVydmlldyI6IlVuIGNvbmVqbyBlbm9ybWUgeSB0cmFucXVpbG8gY29udHJhIHRyZXMgcm9lZG9yZXMgcXVlIG5vIGxvIGRlamFuIGVuIHBhei4iLCJnZW5yZXMiOlsiQW5pbWFjacOzbiIsIkNvbWVkaWEiXSwicmF0aW5nIjo2LjQsInJ1bnRpbWUiOjEwLCJxdWFsaXR5IjoiMTA4MHAiLCJsYW5nIjoiZW4ifV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=10&kind=movie\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "1350"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJ2MSIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiVmlkZW8gZGUgcHJ1ZWJhIDEiLCJ5ZWFyIjoyMDI0LCJvdmVydmlldyI6IlRyZXMgc2VndW5kb3MgZGUgaW1hZ2VuIGRlIHBydWViYTogc2UgcmVwcm9kdWNlIHkgc2UgZGVzY2FyZ2EuIiwiZ2VucmVzIjpbIlBydWViYXMiXSwicnVudGltZSI6MSwiYmFkZ2VzIjpbIkhEIl0sInF1YWxpdHkiOiIxMDgwcCIsImxhbmciOiJlcyJ9LHsiaWQiOiJiYmIiLCJraW5kIjoibW92aWUiLCJ0aXRsZSI6IkJpZyBCdWNrIEJ1bm55IiwieWVhciI6MjAwOCwidG1kYiI6MTAzNzgsImltZGIiOiJ0dDEyNTQyMDciLCJvdmVydmlldyI6IlVuIGNvbmVqbyBlbm9ybWUgeSB0cmFucXVpbG8gY29udHJhIHRyZXMgcm9lZG9yZXMgcXVlIG5vIGxvIGRlamFuIGVuIHBhei4iLCJnZW5yZXMiOlsiQW5pbWFjacOzbiIsIkNvbWVkaWEiXSwicmF0aW5nIjo2LjQsInJ1bnRpbWUiOjEwLCJxdWFsaXR5IjoiMTA4MHAiLCJsYW5nIjoiZW4ifSx7ImlkIjoiZG9ibGFqZSIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiUGVsw61jdWxhIGNvbiBkb2JsYWplIiwieWVhciI6MjAyNSwib3ZlcnZpZXciOiJVbiB0b25vIGdyYXZlIHByb3BpbyB5IHVuIGRvYmxhamUgYXBhcnRlLCB1biBwaXRpZG8gYWd1ZG8sIHBhcmEgZWxlZ2lyIGVuIGVsIG1lbsO6IGRlIGF1ZGlvLiIsImdlbnJlcyI6WyJQcnVlYmFzIl0sInJ1bnRpbWUiOjF9LHsiaWQiOiJjb3BpYXMiLCJraW5kIjoibW92aWUiLCJ0aXRsZSI6IlBlbMOtY3VsYSBjb24gY29waWFzIiwieWVhciI6MjAyNSwiZ2VucmVzIjpbIlBydWViYXMiXX0seyJpZCI6InByb3RlZ2lkbyIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiVmlkZW8gcHJvdGVnaWRvIiwieWVhciI6MjAyNiwib3ZlcnZpZXciOiJTZWlzIHNlZ3VuZG9zIGVuIEhMUzogY2FkYSBwZXRpY2nDs24gbGxldmEgdW5hIGZpcm1hIHF1ZSB2ZW5jZSBlbiBzZWd1bmRvcy4iLCJnZW5yZXMiOlsiUHJ1ZWJhcyJdfSx7ImlkIjoiYWR1bHRvIiwia2luZCI6Im1vdmllIiwidGl0bGUiOiJDb250ZW5pZG8gMTgrIChwcnVlYmEpIiwieWVhciI6MjAyNiwiZ2VucmVzIjpbIkFkdWx0b3MiXSwiYWR1bHQiOnRydWV9LHsiaWQiOiJlcnItNDA0Iiwia2luZCI6Im1vdmllIiwidGl0bGUiOiJFcnJvcjogbm8gZW5jb250cmFkbyJ9LHsiaWQiOiJlcnItNDI5Iiwia2luZCI6Im1vdmllIiwidGl0bGUiOiJFcnJvcjogbGltaXRhZG8ifSx7ImlkIjoiZXJyLTQ1MSIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiRXJyb3I6IHJlZ2nDs24ifSx7ImlkIjoiZXJyLTUwMyIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiRXJyb3I6IG5vIGRpc3BvbmlibGUifV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=10&kind=series\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "207"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJzZXJpZS10MSIsImtpbmQiOiJzZXJpZXMiLCJ0aXRsZSI6IlNlcmllIGRlIHBydWViYSIsInllYXIiOjIwMjUsImdlbnJlcyI6WyJEcmFtYSJdfSx7ImlkIjoic2VyaWUtdDIiLCJraW5kIjoic2VyaWVzIiwidGl0bGUiOiJTZXJpZSBkZSBwcnVlYmEgKFRlbXBvcmFkYSAyKSIsInllYXIiOjIwMjYsImdlbnJlcyI6WyJEcmFtYSJdfV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=10&kind=live\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "520"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJjYW5hbC0xIiwia2luZCI6ImxpdmUiLCJ0aXRsZSI6Ik5vdGljaWFzIDEifSx7ImlkIjoiY2FuYWwtMiIsImtpbmQiOiJsaXZlIiwidGl0bGUiOiJOb3RpY2lhcyAyIn0seyJpZCI6ImNhbmFsLTMiLCJraW5kIjoibGl2ZSIsInRpdGxlIjoiTm90aWNpYXMgMyJ9LHsiaWQiOiJjYW5hbC00Iiwia2luZCI6ImxpdmUiLCJ0aXRsZSI6IkRlcG9ydGVzIDEifSx7ImlkIjoiY2FuYWwtNSIsImtpbmQiOiJsaXZlIiwidGl0bGUiOiJEZXBvcnRlcyAyIn0seyJpZCI6ImNhbmFsLTYiLCJraW5kIjoibGl2ZSIsInRpdGxlIjoiRGVwb3J0ZXMgMyJ9LHsiaWQiOiJjYW5hbC03Iiwia2luZCI6ImxpdmUiLCJ0aXRsZSI6Ikxpc3RhIDEifSx7ImlkIjoiY2FuYWwtOCIsImtpbmQiOiJsaXZlIiwidGl0bGUiOiJMaXN0YSAyIn0seyJpZCI6ImNhbmFsLTkiLCJraW5kIjoibGl2ZSIsInRpdGxlIjoiTGlzdGEgMyJ9LHsiaWQiOiJjYW5hbC0xMCIsImtpbmQiOiJsaXZlIiwidGl0bGUiOiJMaXN0YSA0In1dfQ=="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=10&genre=animacion\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "285"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJiYmIiLCJraW5kIjoibW92aWUiLCJ0aXRsZSI6IkJpZyBCdWNrIEJ1bm55IiwieWVhciI6MjAwOCwidG1kYiI6MTAzNzgsImltZGIiOiJ0dDEyNTQyMDciLCJvdmVydmlldyI6IlVuIGNvbmVqbyBlbm9ybWUgeSB0cmFucXVpbG8gY29udHJhIHRyZXMgcm9lZG9yZXMgcXVlIG5vIGxvIGRlamFuIGVuIHBhei4iLCJnZW5yZXMiOlsiQW5pbWFjacOzbiIsIkNvbWVkaWEiXSwicmF0aW5nIjo2LjQsInJ1bnRpbWUiOjEwLCJxdWFsaXR5IjoiMTA4MHAiLCJsYW5nIjoiZW4ifV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/serie-t1\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "666"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZCI6InNlcmllLXQxIiwia2luZCI6InNlcmllcyIsInNob3ciOnsiaWQiOiJzZXJpZSIsInRpdGxlIjoiU2VyaWUgZGUgcHJ1ZWJhIiwib3ZlcnZpZXciOiJVbmEgc2VyaWUgZGUgcHJ1ZWJhIGNvbiBkb3MgdGVtcG9yYWRhcy4ifSwic2Vhc29uIjoxLCJ5ZWFyIjoyMDI1LCJnZW5yZXMiOlsiRHJhbWEiXSwiZXBpc29kZXMiOlt7ImlkIjoic2VyaWUtdDEtZTEiLCJudW1iZXIiOjEsInRpdGxlIjoiRWwgY29taWVuem8iLCJhaXJEYXRlIjoiMjAyNS0wMS0wMSIsInJ1bnRpbWUiOjEsIm92ZXJ2aWV3IjoiQ2Fww610dWxvIDEgZGUgbGEgdGVtcG9yYWRhIDEuIn0seyJpZCI6InNlcmllLXQxLWUyIiwibnVtYmVyIjoyLCJ0aXRsZSI6IkxhIHBydWViYSIsImFpckRhdGUiOiIyMDI1LTAxLTAyIiwicnVudGltZSI6MSwib3ZlcnZpZXciOiJDYXDDrXR1bG8gMiBkZSBsYSB0ZW1wb3JhZGEgMS4ifSx7ImlkIjoic2VyaWUtdDEtZTMiLCJudW1iZXIiOjMsInRpdGxlIjoiRWwgZmluYWwgZGUgdGVtcG9yYWRhIiwiYWlyRGF0ZSI6IjIwMjUtMDEtMDMiLCJydW50aW1lIjoxLCJvdmVydmlldyI6IkNhcMOtdHVsbyAzIGRlIGxhIHRlbXBvcmFkYSAxLiJ9XSwic2Vhc29ucyI6W3siaWQiOiJzZXJpZS10MSIsIm51bWJlciI6MX0seyJpZCI6InNlcmllLXQyIiwibnVtYmVyIjoyfV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/doblaje\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "369"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZCI6ImRvYmxhamUiLCJraW5kIjoibW92aWUiLCJ0aXRsZSI6IlBlbMOtY3VsYSBjb24gZG9ibGFqZSIsInN0cmVhbSI6Ii9zdHJlYW0vZG9ibGFqZSIsImR1cmF0aW9uTXMiOjQ1MDAwLCJza2lwIjp7Im9wZW5pbmdTdGFydE1zIjoxMDAwLCJvcGVuaW5nRW5kTXMiOjgwMDAsImVuZGluZ1N0YXJ0TXMiOjM3MDAwfSwiYXVkaW8iOlt7ImxhbmciOiJlcy00MTkiLCJsYWJlbCI6IkVzcGHDsW9sIChkb2JsYWplIGRlIHBydWViYSkiLCJzdHJlYW0iOiIvc3RyZWFtL2F1ZGlvLWVzIn1dLCJzdWJ0aXRsZXMiOlt7ImxhbmciOiJlcyIsImxhYmVsIjoiRXNwYcOxb2wiLCJmaWxlIjoiL3N1YnMvZG9ibGFqZS5lcy52dHQiLCJmb3JtYXQiOiJ2dHQifV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/bbb\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "304"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZCI6ImJiYiIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiQmlnIEJ1Y2sgQnVubnkiLCJzdHJlYW0iOiIvc3RyZWFtL2RvYmxhamUiLCJkdXJhdGlvbk1zIjo0NTAwMCwiYXVkaW8iOltdLCJzdWJ0aXRsZXMiOlt7ImxhbmciOiJlcyIsImxhYmVsIjoiQmlnLkJ1Y2suQnVubnkuMjAwOC4xMDgwcCIsImZpbGUiOiIvc3Vicy9iYmIuZXMudnR0IiwiZm9ybWF0IjoidnR0In0seyJsYW5nIjoiZW4iLCJsYWJlbCI6IkJpZy5CdWNrLkJ1bm55LjIwMDguNzIwcCIsImZpbGUiOiIvc3Vicy9iYmIuZW4udnR0IiwiZm9ybWF0IjoidnR0In1dfQ=="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/copias\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "317"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZCI6ImNvcGlhcyIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiUGVsw61jdWxhIGNvbiBjb3BpYXMiLCJzdHJlYW0iOiIvc3RyZWFtL3YxIiwiYXVkaW8iOltdLCJzdWJ0aXRsZXMiOltdLCJjb3BpZXMiOlt7ImlkIjoiYSIsImxhbmciOiJMYXRpbm8iLCJuYW1lIjoiU2Vydmlkb3IgQSIsInN0cmVhbSI6Ii9zdHJlYW0vdjEifSx7ImlkIjoiYiIsImxhbmciOiJPcmlnaW5hbCIsIm5hbWUiOiJTZXJ2aWRvciBCIiwic3RyZWFtIjoiL3N0cmVhbS9kb2JsYWplIn0seyJpZCI6ImMiLCJsYW5nIjoiU3VidGl0dWxhZG8iLCJuYW1lIjoiU2Vydmlkb3IgQyJ9XX0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/copias/copies/c\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "37"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZCI6ImMiLCJzdHJlYW0iOiIvc3RyZWFtL2RvYmxhamUifQ=="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/copias/copies/z\",null]",
+  "status": 404,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "21"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:23 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJlcnJvciI6Im5vdCBmb3VuZCJ9"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/canal-1\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "81"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:24 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZCI6ImNhbmFsLTEiLCJraW5kIjoibGl2ZSIsInRpdGxlIjoiTm90aWNpYXMgMSIsInN0cmVhbSI6Ii9saXZlL2NhbmFsLTEubTN1OCJ9"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/protegido\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "205"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:24 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZCI6InByb3RlZ2lkbyIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiVmlkZW8gcHJvdGVnaWRvIiwiaGxzIjoiL3NlY3VyZS9wcm90ZWdpZG8vaW5kZXgubTN1OCIsInNlc3Npb24iOnsiaWQiOiIyZTVjNDJkMzQ2MjFhZDE0Iiwia2V5IjoiNTA0ZmUxMjIxMDc2NjU1YjhlMTAyZTEzODEzNWEzNGI5NjQ2ODRiNGU5NzRmMGNhNWEzMGIyY2Q1OGM5NDIxMyJ9fQ=="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/err-404\",null]",
+  "status": 404,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "26"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:24 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJlcnJvciI6ImRlbW8gZXJyb3IgNDA0In0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/err-429\",null]",
+  "status": 429,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "26"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:24 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ],
+   [
+    "retry-after",
+    "1"
+   ]
+  ],
+  "body": "eyJlcnJvciI6ImRlbW8gZXJyb3IgNDI5In0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/err-451\",null]",
+  "status": 451,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "26"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:25 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJlcnJvciI6ImRlbW8gZXJyb3IgNDUxIn0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/err-503\",null]",
+  "status": 503,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "26"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:25 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJlcnJvciI6ImRlbW8gZXJyb3IgNTAzIn0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/protegido?fresh=1\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "205"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:25 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZCI6InByb3RlZ2lkbyIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiVmlkZW8gcHJvdGVnaWRvIiwiaGxzIjoiL3NlY3VyZS9wcm90ZWdpZG8vaW5kZXgubTN1OCIsInNlc3Npb24iOnsiaWQiOiI1OGE4NmI4OWYzNTI0YjllIiwia2V5IjoiYmJlNjIxYTVmNjkzZDU4NzdlZjBhMTA5MGE0ZGVmOGYyZjIxMTc1MzRmYzk1Yzk5Y2EyY2YxY2RiYTc1MjgyNiJ9fQ=="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/channels/canal-10/play\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "32"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:25 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJzdHJlYW0iOiIvbGl2ZS9jYW5hbC0xMC5tM3U4In0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/channels/categories\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "143"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:26 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "W3siaWQiOiJub3RpY2lhcyIsInRpdGxlIjoiTm90aWNpYXMiLCJjb3VudHJ5IjoiQ08iLCJnZW5yZSI6Im5vdGljaWFzIn0seyJpZCI6ImRlcG9ydGVzIiwidGl0bGUiOiJEZXBvcnRlcyIsImNvdW50cnkiOiJDTyIsImdlbnJlIjoiZGVwb3J0ZXMifV0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/channels?limit=2&category=noticias\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "168"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:26 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJjYW5hbC0xIiwidGl0bGUiOiJOb3RpY2lhcyAxIiwibnVtYmVyIjoxLCJjYXRlZ29yeUlkIjoibm90aWNpYXMifSx7ImlkIjoiY2FuYWwtMiIsInRpdGxlIjoiTm90aWNpYXMgMiIsIm51bWJlciI6MiwiY2F0ZWdvcnlJZCI6Im5vdGljaWFzIn1dLCJuZXh0IjoiMiJ9"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/channels?limit=2&category=noticias&cursor=2\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "84"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:26 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJjYW5hbC0zIiwidGl0bGUiOiJOb3RpY2lhcyAzIiwibnVtYmVyIjozLCJjYXRlZ29yeUlkIjoibm90aWNpYXMifV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/channels?limit=2&category=deportes\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "168"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:26 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJjYW5hbC00IiwidGl0bGUiOiJEZXBvcnRlcyAxIiwibnVtYmVyIjo0LCJjYXRlZ29yeUlkIjoiZGVwb3J0ZXMifSx7ImlkIjoiY2FuYWwtNSIsInRpdGxlIjoiRGVwb3J0ZXMgMiIsIm51bWJlciI6NSwiY2F0ZWdvcnlJZCI6ImRlcG9ydGVzIn1dLCJuZXh0IjoiMiJ9"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/channels?limit=2&category=deportes&cursor=2\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "84"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:26 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJjYW5hbC02IiwidGl0bGUiOiJEZXBvcnRlcyAzIiwibnVtYmVyIjo2LCJjYXRlZ29yeUlkIjoiZGVwb3J0ZXMifV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/channels/search?q=depor\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "230"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:26 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJjYW5hbC00IiwidGl0bGUiOiJEZXBvcnRlcyAxIiwibnVtYmVyIjo0LCJjYXRlZ29yeUlkIjoiZGVwb3J0ZXMifSx7ImlkIjoiY2FuYWwtNSIsInRpdGxlIjoiRGVwb3J0ZXMgMiIsIm51bWJlciI6NSwiY2F0ZWdvcnlJZCI6ImRlcG9ydGVzIn0seyJpZCI6ImNhbmFsLTYiLCJ0aXRsZSI6IkRlcG9ydGVzIDMiLCJudW1iZXIiOjYsImNhdGVnb3J5SWQiOiJkZXBvcnRlcyJ9XX0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/channels/guide?ids=canal-1%2Ccanal-4&from=1790568000000&to=1790654400000\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "6177"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:26 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "W3siY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiTWFnYXrDrW4iLCJzdGFydCI6MTc5MDU2ODAwMDAwMCwiZW5kIjoxNzkwNTcxNjAwMDAwLCJkZXNjcmlwdGlvbiI6Ik1hZ2F6w61uIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiUmVzdW1lbiBkZWwgZMOtYSIsInN0YXJ0IjoxNzkwNTcxNjAwMDAwLCJlbmQiOjE3OTA1NzUyMDAwMDAsImRlc2NyaXB0aW9uIjoiUmVzdW1lbiBkZWwgZMOtYSBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTEiLCJ0aXRsZSI6Ik5vdGljaWVybyIsInN0YXJ0IjoxNzkwNTc1MjAwMDAwLCJlbmQiOjE3OTA1Nzg4MDAwMDAsImRlc2NyaXB0aW9uIjoiTm90aWNpZXJvIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiTWFnYXrDrW4iLCJzdGFydCI6MTc5MDU3ODgwMDAwMCwiZW5kIjoxNzkwNTgyNDAwMDAwLCJkZXNjcmlwdGlvbiI6Ik1hZ2F6w61uIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiUmVzdW1lbiBkZWwgZMOtYSIsInN0YXJ0IjoxNzkwNTgyNDAwMDAwLCJlbmQiOjE3OTA1ODYwMDAwMDAsImRlc2NyaXB0aW9uIjoiUmVzdW1lbiBkZWwgZMOtYSBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTEiLCJ0aXRsZSI6Ik5vdGljaWVybyIsInN0YXJ0IjoxNzkwNTg2MDAwMDAwLCJlbmQiOjE3OTA1ODk2MDAwMDAsImRlc2NyaXB0aW9uIjoiTm90aWNpZXJvIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiTWFnYXrDrW4iLCJzdGFydCI6MTc5MDU4OTYwMDAwMCwiZW5kIjoxNzkwNTkzMjAwMDAwLCJkZXNjcmlwdGlvbiI6Ik1hZ2F6w61uIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiUmVzdW1lbiBkZWwgZMOtYSIsInN0YXJ0IjoxNzkwNTkzMjAwMDAwLCJlbmQiOjE3OTA1OTY4MDAwMDAsImRlc2NyaXB0aW9uIjoiUmVzdW1lbiBkZWwgZMOtYSBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTEiLCJ0aXRsZSI6Ik5vdGljaWVybyIsInN0YXJ0IjoxNzkwNTk2ODAwMDAwLCJlbmQiOjE3OTA2MDA0MDAwMDAsImRlc2NyaXB0aW9uIjoiTm90aWNpZXJvIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiTWFnYXrDrW4iLCJzdGFydCI6MTc5MDYwMDQwMDAwMCwiZW5kIjoxNzkwNjA0MDAwMDAwLCJkZXNjcmlwdGlvbiI6Ik1hZ2F6w61uIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiUmVzdW1lbiBkZWwgZMOtYSIsInN0YXJ0IjoxNzkwNjA0MDAwMDAwLCJlbmQiOjE3OTA2MDc2MDAwMDAsImRlc2NyaXB0aW9uIjoiUmVzdW1lbiBkZWwgZMOtYSBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTEiLCJ0aXRsZSI6Ik5vdGljaWVybyIsInN0YXJ0IjoxNzkwNjA3NjAwMDAwLCJlbmQiOjE3OTA2MTEyMDAwMDAsImRlc2NyaXB0aW9uIjoiTm90aWNpZXJvIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiTWFnYXrDrW4iLCJzdGFydCI6MTc5MDYxMTIwMDAwMCwiZW5kIjoxNzkwNjE0ODAwMDAwLCJkZXNjcmlwdGlvbiI6Ik1hZ2F6w61uIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiUmVzdW1lbiBkZWwgZMOtYSIsInN0YXJ0IjoxNzkwNjE0ODAwMDAwLCJlbmQiOjE3OTA2MTg0MDAwMDAsImRlc2NyaXB0aW9uIjoiUmVzdW1lbiBkZWwgZMOtYSBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTEiLCJ0aXRsZSI6Ik5vdGljaWVybyIsInN0YXJ0IjoxNzkwNjE4NDAwMDAwLCJlbmQiOjE3OTA2MjIwMDAwMDAsImRlc2NyaXB0aW9uIjoiTm90aWNpZXJvIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiTWFnYXrDrW4iLCJzdGFydCI6MTc5MDYyMjAwMDAwMCwiZW5kIjoxNzkwNjI1NjAwMDAwLCJkZXNjcmlwdGlvbiI6Ik1hZ2F6w61uIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiUmVzdW1lbiBkZWwgZMOtYSIsInN0YXJ0IjoxNzkwNjI1NjAwMDAwLCJlbmQiOjE3OTA2MjkyMDAwMDAsImRlc2NyaXB0aW9uIjoiUmVzdW1lbiBkZWwgZMOtYSBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTEiLCJ0aXRsZSI6Ik5vdGljaWVybyIsInN0YXJ0IjoxNzkwNjI5MjAwMDAwLCJlbmQiOjE3OTA2MzI4MDAwMDAsImRlc2NyaXB0aW9uIjoiTm90aWNpZXJvIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiTWFnYXrDrW4iLCJzdGFydCI6MTc5MDYzMjgwMDAwMCwiZW5kIjoxNzkwNjM2NDAwMDAwLCJkZXNjcmlwdGlvbiI6Ik1hZ2F6w61uIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiUmVzdW1lbiBkZWwgZMOtYSIsInN0YXJ0IjoxNzkwNjM2NDAwMDAwLCJlbmQiOjE3OTA2NDAwMDAwMDAsImRlc2NyaXB0aW9uIjoiUmVzdW1lbiBkZWwgZMOtYSBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTEiLCJ0aXRsZSI6Ik5vdGljaWVybyIsInN0YXJ0IjoxNzkwNjQwMDAwMDAwLCJlbmQiOjE3OTA2NDM2MDAwMDAsImRlc2NyaXB0aW9uIjoiTm90aWNpZXJvIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiTWFnYXrDrW4iLCJzdGFydCI6MTc5MDY0MzYwMDAwMCwiZW5kIjoxNzkwNjQ3MjAwMDAwLCJkZXNjcmlwdGlvbiI6Ik1hZ2F6w61uIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtMSIsInRpdGxlIjoiUmVzdW1lbiBkZWwgZMOtYSIsInN0YXJ0IjoxNzkwNjQ3MjAwMDAwLCJlbmQiOjE3OTA2NTA4MDAwMDAsImRlc2NyaXB0aW9uIjoiUmVzdW1lbiBkZWwgZMOtYSBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTEiLCJ0aXRsZSI6Ik5vdGljaWVybyIsInN0YXJ0IjoxNzkwNjUwODAwMDAwLCJlbmQiOjE3OTA2NTQ0MDAwMDAsImRlc2NyaXB0aW9uIjoiTm90aWNpZXJvIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtNCIsInRpdGxlIjoiQW7DoWxpc2lzIiwic3RhcnQiOjE3OTA1NjgwMDAwMDAsImVuZCI6MTc5MDU3MTYwMDAwMCwiZGVzY3JpcHRpb24iOiJBbsOhbGlzaXMgZGUgcHJ1ZWJhIn0seyJjaGFubmVsSWQiOiJjYW5hbC00IiwidGl0bGUiOiJHb2xlcyBkZSBsYSBmZWNoYSIsInN0YXJ0IjoxNzkwNTcxNjAwMDAwLCJlbmQiOjE3OTA1NzUyMDAwMDAsImRlc2NyaXB0aW9uIjoiR29sZXMgZGUgbGEgZmVjaGEgZGUgcHJ1ZWJhIn0seyJjaGFubmVsSWQiOiJjYW5hbC00IiwidGl0bGUiOiJGw7p0Ym9sIGVuIHZpdm8iLCJzdGFydCI6MTc5MDU3NTIwMDAwMCwiZW5kIjoxNzkwNTc4ODAwMDAwLCJkZXNjcmlwdGlvbiI6IkbDunRib2wgZW4gdml2byBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTQiLCJ0aXRsZSI6IkFuw6FsaXNpcyIsInN0YXJ0IjoxNzkwNTc4ODAwMDAwLCJlbmQiOjE3OTA1ODI0MDAwMDAsImRlc2NyaXB0aW9uIjoiQW7DoWxpc2lzIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtNCIsInRpdGxlIjoiR29sZXMgZGUgbGEgZmVjaGEiLCJzdGFydCI6MTc5MDU4MjQwMDAwMCwiZW5kIjoxNzkwNTg2MDAwMDAwLCJkZXNjcmlwdGlvbiI6IkdvbGVzIGRlIGxhIGZlY2hhIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtNCIsInRpdGxlIjoiRsO6dGJvbCBlbiB2aXZvIiwic3RhcnQiOjE3OTA1ODYwMDAwMDAsImVuZCI6MTc5MDU4OTYwMDAwMCwiZGVzY3JpcHRpb24iOiJGw7p0Ym9sIGVuIHZpdm8gZGUgcHJ1ZWJhIn0seyJjaGFubmVsSWQiOiJjYW5hbC00IiwidGl0bGUiOiJBbsOhbGlzaXMiLCJzdGFydCI6MTc5MDU4OTYwMDAwMCwiZW5kIjoxNzkwNTkzMjAwMDAwLCJkZXNjcmlwdGlvbiI6IkFuw6FsaXNpcyBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTQiLCJ0aXRsZSI6IkdvbGVzIGRlIGxhIGZlY2hhIiwic3RhcnQiOjE3OTA1OTMyMDAwMDAsImVuZCI6MTc5MDU5NjgwMDAwMCwiZGVzY3JpcHRpb24iOiJHb2xlcyBkZSBsYSBmZWNoYSBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTQiLCJ0aXRsZSI6IkbDunRib2wgZW4gdml2byIsInN0YXJ0IjoxNzkwNTk2ODAwMDAwLCJlbmQiOjE3OTA2MDA0MDAwMDAsImRlc2NyaXB0aW9uIjoiRsO6dGJvbCBlbiB2aXZvIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtNCIsInRpdGxlIjoiQW7DoWxpc2lzIiwic3RhcnQiOjE3OTA2MDA0MDAwMDAsImVuZCI6MTc5MDYwNDAwMDAwMCwiZGVzY3JpcHRpb24iOiJBbsOhbGlzaXMgZGUgcHJ1ZWJhIn0seyJjaGFubmVsSWQiOiJjYW5hbC00IiwidGl0bGUiOiJHb2xlcyBkZSBsYSBmZWNoYSIsInN0YXJ0IjoxNzkwNjA0MDAwMDAwLCJlbmQiOjE3OTA2MDc2MDAwMDAsImRlc2NyaXB0aW9uIjoiR29sZXMgZGUgbGEgZmVjaGEgZGUgcHJ1ZWJhIn0seyJjaGFubmVsSWQiOiJjYW5hbC00IiwidGl0bGUiOiJGw7p0Ym9sIGVuIHZpdm8iLCJzdGFydCI6MTc5MDYwNzYwMDAwMCwiZW5kIjoxNzkwNjExMjAwMDAwLCJkZXNjcmlwdGlvbiI6IkbDunRib2wgZW4gdml2byBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTQiLCJ0aXRsZSI6IkFuw6FsaXNpcyIsInN0YXJ0IjoxNzkwNjExMjAwMDAwLCJlbmQiOjE3OTA2MTQ4MDAwMDAsImRlc2NyaXB0aW9uIjoiQW7DoWxpc2lzIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtNCIsInRpdGxlIjoiR29sZXMgZGUgbGEgZmVjaGEiLCJzdGFydCI6MTc5MDYxNDgwMDAwMCwiZW5kIjoxNzkwNjE4NDAwMDAwLCJkZXNjcmlwdGlvbiI6IkdvbGVzIGRlIGxhIGZlY2hhIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtNCIsInRpdGxlIjoiRsO6dGJvbCBlbiB2aXZvIiwic3RhcnQiOjE3OTA2MTg0MDAwMDAsImVuZCI6MTc5MDYyMjAwMDAwMCwiZGVzY3JpcHRpb24iOiJGw7p0Ym9sIGVuIHZpdm8gZGUgcHJ1ZWJhIn0seyJjaGFubmVsSWQiOiJjYW5hbC00IiwidGl0bGUiOiJBbsOhbGlzaXMiLCJzdGFydCI6MTc5MDYyMjAwMDAwMCwiZW5kIjoxNzkwNjI1NjAwMDAwLCJkZXNjcmlwdGlvbiI6IkFuw6FsaXNpcyBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTQiLCJ0aXRsZSI6IkdvbGVzIGRlIGxhIGZlY2hhIiwic3RhcnQiOjE3OTA2MjU2MDAwMDAsImVuZCI6MTc5MDYyOTIwMDAwMCwiZGVzY3JpcHRpb24iOiJHb2xlcyBkZSBsYSBmZWNoYSBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTQiLCJ0aXRsZSI6IkbDunRib2wgZW4gdml2byIsInN0YXJ0IjoxNzkwNjI5MjAwMDAwLCJlbmQiOjE3OTA2MzI4MDAwMDAsImRlc2NyaXB0aW9uIjoiRsO6dGJvbCBlbiB2aXZvIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtNCIsInRpdGxlIjoiQW7DoWxpc2lzIiwic3RhcnQiOjE3OTA2MzI4MDAwMDAsImVuZCI6MTc5MDYzNjQwMDAwMCwiZGVzY3JpcHRpb24iOiJBbsOhbGlzaXMgZGUgcHJ1ZWJhIn0seyJjaGFubmVsSWQiOiJjYW5hbC00IiwidGl0bGUiOiJHb2xlcyBkZSBsYSBmZWNoYSIsInN0YXJ0IjoxNzkwNjM2NDAwMDAwLCJlbmQiOjE3OTA2NDAwMDAwMDAsImRlc2NyaXB0aW9uIjoiR29sZXMgZGUgbGEgZmVjaGEgZGUgcHJ1ZWJhIn0seyJjaGFubmVsSWQiOiJjYW5hbC00IiwidGl0bGUiOiJGw7p0Ym9sIGVuIHZpdm8iLCJzdGFydCI6MTc5MDY0MDAwMDAwMCwiZW5kIjoxNzkwNjQzNjAwMDAwLCJkZXNjcmlwdGlvbiI6IkbDunRib2wgZW4gdml2byBkZSBwcnVlYmEifSx7ImNoYW5uZWxJZCI6ImNhbmFsLTQiLCJ0aXRsZSI6IkFuw6FsaXNpcyIsInN0YXJ0IjoxNzkwNjQzNjAwMDAwLCJlbmQiOjE3OTA2NDcyMDAwMDAsImRlc2NyaXB0aW9uIjoiQW7DoWxpc2lzIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtNCIsInRpdGxlIjoiR29sZXMgZGUgbGEgZmVjaGEiLCJzdGFydCI6MTc5MDY0NzIwMDAwMCwiZW5kIjoxNzkwNjUwODAwMDAwLCJkZXNjcmlwdGlvbiI6IkdvbGVzIGRlIGxhIGZlY2hhIGRlIHBydWViYSJ9LHsiY2hhbm5lbElkIjoiY2FuYWwtNCIsInRpdGxlIjoiRsO6dGJvbCBlbiB2aXZvIiwic3RhcnQiOjE3OTA2NTA4MDAwMDAsImVuZCI6MTc5MDY1NDQwMDAwMCwiZGVzY3JpcHRpb24iOiJGw7p0Ym9sIGVuIHZpdm8gZGUgcHJ1ZWJhIn1d"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/subtitles?imdb=tt1254207\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "449"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:26 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "W3sibGFuZyI6ImVzIiwibGFiZWwiOiJCaWcuQnVjay5CdW5ueS4yMDA4LjEwODBwIiwicmVsZWFzZSI6IkJpZy5CdWNrLkJ1bm55LjIwMDguMTA4MHAubXA0IiwidHJhbnNsYXRlZCI6ZmFsc2UsImZpbGUiOiIvc3Vicy9iYmIuZXMudnR0IiwiZm9ybWF0IjoidnR0IiwiaGFzaCI6Ijc5MjgxYzUwNmI3MzY5ZjAifSx7ImxhbmciOiJlbiIsImxhYmVsIjoiQmlnLkJ1Y2suQnVubnkuMjAwOC43MjBwIiwicmVsZWFzZSI6IkJpZy5CdWNrLkJ1bm55LjIwMDguNzIwcC5ta3YiLCJ0cmFuc2xhdGVkIjpmYWxzZSwiZmlsZSI6Ii9zdWJzL2JiYi5lbi52dHQiLCJmb3JtYXQiOiJ2dHQifSx7ImxhbmciOiJwdCIsImxhYmVsIjoiVHJhZHVjY2nDs24gYXV0b23DoXRpY2EiLCJyZWxlYXNlIjoiIiwidHJhbnNsYXRlZCI6dHJ1ZSwiZmlsZSI6Ii9zdWJzL2JiYi5wdC52dHQiLCJmb3JtYXQiOiJ2dHQifV0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/subtitles?tmdb=10378\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "449"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "W3sibGFuZyI6ImVzIiwibGFiZWwiOiJCaWcuQnVjay5CdW5ueS4yMDA4LjEwODBwIiwicmVsZWFzZSI6IkJpZy5CdWNrLkJ1bm55LjIwMDguMTA4MHAubXA0IiwidHJhbnNsYXRlZCI6ZmFsc2UsImZpbGUiOiIvc3Vicy9iYmIuZXMudnR0IiwiZm9ybWF0IjoidnR0IiwiaGFzaCI6Ijc5MjgxYzUwNmI3MzY5ZjAifSx7ImxhbmciOiJlbiIsImxhYmVsIjoiQmlnLkJ1Y2suQnVubnkuMjAwOC43MjBwIiwicmVsZWFzZSI6IkJpZy5CdWNrLkJ1bm55LjIwMDguNzIwcC5ta3YiLCJ0cmFuc2xhdGVkIjpmYWxzZSwiZmlsZSI6Ii9zdWJzL2JiYi5lbi52dHQiLCJmb3JtYXQiOiJ2dHQifSx7ImxhbmciOiJwdCIsImxhYmVsIjoiVHJhZHVjY2nDs24gYXV0b23DoXRpY2EiLCJyZWxlYXNlIjoiIiwidHJhbnNsYXRlZCI6dHJ1ZSwiZmlsZSI6Ii9zdWJzL2JiYi5wdC52dHQiLCJmb3JtYXQiOiJ2dHQifV0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/subtitles?imdb=tt0133093\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "2"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "W10="
+ },
+ {
+  "key": "[\"POST\",\"http://192.168.1.10:8096/playing\",\"{\\\"id\\\":\\\"evt-bbb-watched\\\",\\\"type\\\":\\\"watched\\\",\\\"at\\\":1790575200000,\\\"kind\\\":\\\"movie\\\",\\\"ids\\\":{\\\"imdb\\\":\\\"tt1254207\\\",\\\"tmdb\\\":10378},\\\"title\\\":\\\"Big Buck Bunny\\\",\\\"year\\\":2008,\\\"positionMs\\\":44000,\\\"durationMs\\\":45000,\\\"progress\\\":0.98}\"]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "11"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJvayI6dHJ1ZX0="
+ },
+ {
+  "key": "[\"POST\",\"http://192.168.1.10:8096/playing\",\"{\\\"id\\\":\\\"evt-matrix-start\\\",\\\"type\\\":\\\"start\\\",\\\"at\\\":1790575200000,\\\"kind\\\":\\\"movie\\\",\\\"ids\\\":{\\\"imdb\\\":\\\"tt0133093\\\",\\\"tmdb\\\":603},\\\"title\\\":\\\"The Matrix\\\",\\\"year\\\":1999,\\\"positionMs\\\":0,\\\"durationMs\\\":8160000,\\\"progress\\\":0}\"]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "16"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZ25vcmVkIjp0cnVlfQ=="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/segments?imdb=tt1254207&duration=45000\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "95"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "W3sidHlwZSI6ImludHJvIiwic3RhcnRNcyI6MjAwMCwiZW5kTXMiOjkwMDB9LHsidHlwZSI6ImNyZWRpdHMiLCJzdGFydE1zIjozODAwMCwiZW5kTXMiOjQ1MDAwfV0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/segments?imdb=tt1254207&duration=60000\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "2"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "W10="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/segments?showTmdb=1396&season=1&episode=2&duration=2880000\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "2"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "W10="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/moved\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "280"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJ0aXRsZXMiOnsidmlkZW8tZGUtcHJ1ZWJhLTEiOnsiaWQiOiJ2MSIsImtpbmQiOiJtb3ZpZSJ9LCJiaWctYnVjay1idW5ueS0yMDA4Ijp7ImlkIjoiYmJiIiwia2luZCI6Im1vdmllIn0sInNlcmllLWRlLXBydWViYS10MSI6eyJpZCI6InNlcmllLXQxIiwia2luZCI6InNlcmllcyJ9fSwiZXBpc29kZXMiOnsic2VyaWUtZGUtcHJ1ZWJhLTF4MiI6eyJpZCI6InNlcmllLXQxLWUyIiwic2Vhc29uIjoxLCJudW1iZXIiOjJ9fSwiY2hhbm5lbHMiOnsibm90aWNpYXMtdW5vIjoiY2FuYWwtMSJ9fQ=="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=20&kind=movie\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "1350"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJ2MSIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiVmlkZW8gZGUgcHJ1ZWJhIDEiLCJ5ZWFyIjoyMDI0LCJvdmVydmlldyI6IlRyZXMgc2VndW5kb3MgZGUgaW1hZ2VuIGRlIHBydWViYTogc2UgcmVwcm9kdWNlIHkgc2UgZGVzY2FyZ2EuIiwiZ2VucmVzIjpbIlBydWViYXMiXSwicnVudGltZSI6MSwiYmFkZ2VzIjpbIkhEIl0sInF1YWxpdHkiOiIxMDgwcCIsImxhbmciOiJlcyJ9LHsiaWQiOiJiYmIiLCJraW5kIjoibW92aWUiLCJ0aXRsZSI6IkJpZyBCdWNrIEJ1bm55IiwieWVhciI6MjAwOCwidG1kYiI6MTAzNzgsImltZGIiOiJ0dDEyNTQyMDciLCJvdmVydmlldyI6IlVuIGNvbmVqbyBlbm9ybWUgeSB0cmFucXVpbG8gY29udHJhIHRyZXMgcm9lZG9yZXMgcXVlIG5vIGxvIGRlamFuIGVuIHBhei4iLCJnZW5yZXMiOlsiQW5pbWFjacOzbiIsIkNvbWVkaWEiXSwicmF0aW5nIjo2LjQsInJ1bnRpbWUiOjEwLCJxdWFsaXR5IjoiMTA4MHAiLCJsYW5nIjoiZW4ifSx7ImlkIjoiZG9ibGFqZSIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiUGVsw61jdWxhIGNvbiBkb2JsYWplIiwieWVhciI6MjAyNSwib3ZlcnZpZXciOiJVbiB0b25vIGdyYXZlIHByb3BpbyB5IHVuIGRvYmxhamUgYXBhcnRlLCB1biBwaXRpZG8gYWd1ZG8sIHBhcmEgZWxlZ2lyIGVuIGVsIG1lbsO6IGRlIGF1ZGlvLiIsImdlbnJlcyI6WyJQcnVlYmFzIl0sInJ1bnRpbWUiOjF9LHsiaWQiOiJjb3BpYXMiLCJraW5kIjoibW92aWUiLCJ0aXRsZSI6IlBlbMOtY3VsYSBjb24gY29waWFzIiwieWVhciI6MjAyNSwiZ2VucmVzIjpbIlBydWViYXMiXX0seyJpZCI6InByb3RlZ2lkbyIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiVmlkZW8gcHJvdGVnaWRvIiwieWVhciI6MjAyNiwib3ZlcnZpZXciOiJTZWlzIHNlZ3VuZG9zIGVuIEhMUzogY2FkYSBwZXRpY2nDs24gbGxldmEgdW5hIGZpcm1hIHF1ZSB2ZW5jZSBlbiBzZWd1bmRvcy4iLCJnZW5yZXMiOlsiUHJ1ZWJhcyJdfSx7ImlkIjoiYWR1bHRvIiwia2luZCI6Im1vdmllIiwidGl0bGUiOiJDb250ZW5pZG8gMTgrIChwcnVlYmEpIiwieWVhciI6MjAyNiwiZ2VucmVzIjpbIkFkdWx0b3MiXSwiYWR1bHQiOnRydWV9LHsiaWQiOiJlcnItNDA0Iiwia2luZCI6Im1vdmllIiwidGl0bGUiOiJFcnJvcjogbm8gZW5jb250cmFkbyJ9LHsiaWQiOiJlcnItNDI5Iiwia2luZCI6Im1vdmllIiwidGl0bGUiOiJFcnJvcjogbGltaXRhZG8ifSx7ImlkIjoiZXJyLTQ1MSIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiRXJyb3I6IHJlZ2nDs24ifSx7ImlkIjoiZXJyLTUwMyIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiRXJyb3I6IG5vIGRpc3BvbmlibGUifV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/genres\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "210"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "W3siaWQiOiJwcnVlYmFzIiwidGl0bGUiOiJQcnVlYmFzIiwiYXJ0IjoidjEifSx7ImlkIjoiYW5pbWFjaW9uIiwidGl0bGUiOiJBbmltYWNpw7NuIiwiYXJ0IjoiYmJiIn0seyJpZCI6ImRyYW1hIiwidGl0bGUiOiJEcmFtYSIsImFydCI6InNlcmllLXQxIn0seyJpZCI6ImFkdWx0b3MiLCJ0aXRsZSI6IkFkdWx0b3MiLCJhcnQiOiJhZHVsdG8iLCJhZHVsdCI6dHJ1ZX1d"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=10&kind=movie&genre=pruebas\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "725"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJ2MSIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiVmlkZW8gZGUgcHJ1ZWJhIDEiLCJ5ZWFyIjoyMDI0LCJvdmVydmlldyI6IlRyZXMgc2VndW5kb3MgZGUgaW1hZ2VuIGRlIHBydWViYTogc2UgcmVwcm9kdWNlIHkgc2UgZGVzY2FyZ2EuIiwiZ2VucmVzIjpbIlBydWViYXMiXSwicnVudGltZSI6MSwiYmFkZ2VzIjpbIkhEIl0sInF1YWxpdHkiOiIxMDgwcCIsImxhbmciOiJlcyJ9LHsiaWQiOiJkb2JsYWplIiwia2luZCI6Im1vdmllIiwidGl0bGUiOiJQZWzDrWN1bGEgY29uIGRvYmxhamUiLCJ5ZWFyIjoyMDI1LCJvdmVydmlldyI6IlVuIHRvbm8gZ3JhdmUgcHJvcGlvIHkgdW4gZG9ibGFqZSBhcGFydGUsIHVuIHBpdGlkbyBhZ3VkbywgcGFyYSBlbGVnaXIgZW4gZWwgbWVuw7ogZGUgYXVkaW8uIiwiZ2VucmVzIjpbIlBydWViYXMiXSwicnVudGltZSI6MX0seyJpZCI6ImNvcGlhcyIsImtpbmQiOiJtb3ZpZSIsInRpdGxlIjoiUGVsw61jdWxhIGNvbiBjb3BpYXMiLCJ5ZWFyIjoyMDI1LCJnZW5yZXMiOlsiUHJ1ZWJhcyJdfSx7ImlkIjoicHJvdGVnaWRvIiwia2luZCI6Im1vdmllIiwidGl0bGUiOiJWaWRlbyBwcm90ZWdpZG8iLCJ5ZWFyIjoyMDI2LCJvdmVydmlldyI6IlNlaXMgc2VndW5kb3MgZW4gSExTOiBjYWRhIHBldGljacOzbiBsbGV2YSB1bmEgZmlybWEgcXVlIHZlbmNlIGVuIHNlZ3VuZG9zLiIsImdlbnJlcyI6WyJQcnVlYmFzIl19XX0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=10&kind=movie&genre=animacion\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "285"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJiYmIiLCJraW5kIjoibW92aWUiLCJ0aXRsZSI6IkJpZyBCdWNrIEJ1bm55IiwieWVhciI6MjAwOCwidG1kYiI6MTAzNzgsImltZGIiOiJ0dDEyNTQyMDciLCJvdmVydmlldyI6IlVuIGNvbmVqbyBlbm9ybWUgeSB0cmFucXVpbG8gY29udHJhIHRyZXMgcm9lZG9yZXMgcXVlIG5vIGxvIGRlamFuIGVuIHBhei4iLCJnZW5yZXMiOlsiQW5pbWFjacOzbiIsIkNvbWVkaWEiXSwicmF0aW5nIjo2LjQsInJ1bnRpbWUiOjEwLCJxdWFsaXR5IjoiMTA4MHAiLCJsYW5nIjoiZW4ifV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=10&kind=movie&genre=drama\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "12"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:27 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W119"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=20&kind=series\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "207"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:28 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJzZXJpZS10MSIsImtpbmQiOiJzZXJpZXMiLCJ0aXRsZSI6IlNlcmllIGRlIHBydWViYSIsInllYXIiOjIwMjUsImdlbnJlcyI6WyJEcmFtYSJdfSx7ImlkIjoic2VyaWUtdDIiLCJraW5kIjoic2VyaWVzIiwidGl0bGUiOiJTZXJpZSBkZSBwcnVlYmEgKFRlbXBvcmFkYSAyKSIsInllYXIiOjIwMjYsImdlbnJlcyI6WyJEcmFtYSJdfV19"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items?limit=20&kind=live\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "520"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:28 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpdGVtcyI6W3siaWQiOiJjYW5hbC0xIiwia2luZCI6ImxpdmUiLCJ0aXRsZSI6Ik5vdGljaWFzIDEifSx7ImlkIjoiY2FuYWwtMiIsImtpbmQiOiJsaXZlIiwidGl0bGUiOiJOb3RpY2lhcyAyIn0seyJpZCI6ImNhbmFsLTMiLCJraW5kIjoibGl2ZSIsInRpdGxlIjoiTm90aWNpYXMgMyJ9LHsiaWQiOiJjYW5hbC00Iiwia2luZCI6ImxpdmUiLCJ0aXRsZSI6IkRlcG9ydGVzIDEifSx7ImlkIjoiY2FuYWwtNSIsImtpbmQiOiJsaXZlIiwidGl0bGUiOiJEZXBvcnRlcyAyIn0seyJpZCI6ImNhbmFsLTYiLCJraW5kIjoibGl2ZSIsInRpdGxlIjoiRGVwb3J0ZXMgMyJ9LHsiaWQiOiJjYW5hbC03Iiwia2luZCI6ImxpdmUiLCJ0aXRsZSI6Ikxpc3RhIDEifSx7ImlkIjoiY2FuYWwtOCIsImtpbmQiOiJsaXZlIiwidGl0bGUiOiJMaXN0YSAyIn0seyJpZCI6ImNhbmFsLTkiLCJraW5kIjoibGl2ZSIsInRpdGxlIjoiTGlzdGEgMyJ9LHsiaWQiOiJjYW5hbC0xMCIsImtpbmQiOiJsaXZlIiwidGl0bGUiOiJMaXN0YSA0In1dfQ=="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/status\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "78"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:28 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJuYW1lIjoiVHUgc2Vydmlkb3IgKHJlZmVyZW5jaWEpIiwidmVyc2lvbiI6IjEuNS4wIiwidGl0bGVzIjoyMiwidXNlciI6ImFuYSJ9"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/playing\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "100"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:28 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJjb3VudCI6MSwibGFzdCI6eyJ0eXBlIjoid2F0Y2hlZCIsImF0IjoxNzkwNTc1MjAwMDAwLCJ0aXRsZSI6IkJpZyBCdWNrIEJ1bm55IiwicG9zaXRpb25NcyI6NDQwMDB9fQ=="
+ },
+ {
+  "key": "[\"POST\",\"http://192.168.1.10:8096/auth\",\"{\\\"user\\\":\\\"ana\\\",\\\"password\\\":\\\"mala\\\"}\"]",
+  "status": 401,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "27"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:28 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJlcnJvciI6ImJhZCBjcmVkZW50aWFscyJ9"
+ },
+ {
+  "key": "[\"DELETE\",\"http://192.168.1.10:8096/session\",null]",
+  "status": 204,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:28 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": ""
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/items/canal-3\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "81"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:57:45 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZCI6ImNhbmFsLTMiLCJraW5kIjoibGl2ZSIsInRpdGxlIjoiTm90aWNpYXMgMyIsInN0cmVhbSI6Ii9saXZlL2NhbmFsLTMubTN1OCJ9"
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/meta?type=movie&imdb=tt1254207&tmdb=10378\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "419"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:28 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJpZCI6ImJiYiIsInRpdGxlIjoiQmlnIEJ1Y2sgQnVubnkiLCJ5ZWFyIjoyMDA4LCJvdmVydmlldyI6IlVuIGNvbmVqbyBlbm9ybWUgeSB0cmFucXVpbG8gY29udHJhIHRyZXMgcm9lZG9yZXMgcXVlIG5vIGxvIGRlamFuIGVuIHBhei4iLCJnZW5yZXMiOlsiQW5pbWFjacOzbiIsIkNvbWVkaWEiXSwicnVudGltZSI6MTAsInJhdGluZ3MiOlt7InNvdXJjZSI6ImltZGIiLCJ2YWx1ZSI6IjYuNCJ9LHsic291cmNlIjoibGV0dGVyYm94ZCIsInZhbHVlIjoiMy40LzUifV0sImNhc3QiOlt7ImlkIjoiYW5hLXBydWViYSIsIm5hbWUiOiJBbmEgUHJ1ZWJhIiwiY2hhcmFjdGVyIjoiQmlnIEJ1Y2sgQnVubnkgKHZveikifSx7ImlkIjoibHVpcy1lbnNheW8iLCJuYW1lIjoiTHVpcyBFbnNheW8iLCJjaGFyYWN0ZXIiOiJGcmFuayAodm96KSJ9XX0="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/meta?type=movie&tmdb=603\",null]",
+  "status": 404,
+  "headers": [
+   [
+    "connection",
+    "keep-alive"
+   ],
+   [
+    "content-length",
+    "31"
+   ],
+   [
+    "content-type",
+    "application/json"
+   ],
+   [
+    "date",
+    "Mon, 05 Oct 2026 16:55:28 GMT"
+   ],
+   [
+    "keep-alive",
+    "timeout=5"
+   ]
+  ],
+  "body": "eyJlcnJvciI6Im5vdCBpbiB0aGlzIGxpYnJhcnkifQ=="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/lista.m3u\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "content-type",
+    "audio/x-mpegurl"
+   ],
+   [
+    "content-length",
+    "917"
+   ]
+  ],
+  "body": "I0VYVE0zVQojRVhUSU5GOi0xIHR2Zy1pZD0ibGlzdGEtNyIgdHZnLWNobm89IjciIHR2Zy1sb2dvPSJodHRwOi8vMTkyLjE2OC4xLjEwOjgwOTYvaW1nL3Bvc3Rlci9jYW5hbC03LnBuZyIgZ3JvdXAtdGl0bGU9Ikxpc3RhIGRlIHBydWViYSIsTGlzdGEgMQpodHRwOi8vMTkyLjE2OC4xLjEwOjgwOTYvbGl2ZS9jYW5hbC03Lm0zdTgKI0VYVElORjotMSB0dmctaWQ9Imxpc3RhLTgiIHR2Zy1jaG5vPSI4IiB0dmctbG9nbz0iaHR0cDovLzE5Mi4xNjguMS4xMDo4MDk2L2ltZy9wb3N0ZXIvY2FuYWwtOC5wbmciIGdyb3VwLXRpdGxlPSJMaXN0YSBkZSBwcnVlYmEiLExpc3RhIDIKaHR0cDovLzE5Mi4xNjguMS4xMDo4MDk2L2xpdmUvY2FuYWwtOC5tM3U4CiNFWFRJTkY6LTEgdHZnLWlkPSJsaXN0YS05IiB0dmctY2hubz0iOSIgdHZnLWxvZ289Imh0dHA6Ly8xOTIuMTY4LjEuMTA6ODA5Ni9pbWcvcG9zdGVyL2NhbmFsLTkucG5nIiBncm91cC10aXRsZT0iTGlzdGEgZGUgcHJ1ZWJhIixMaXN0YSAzCmh0dHA6Ly8xOTIuMTY4LjEuMTA6ODA5Ni9saXZlL2NhbmFsLTkubTN1OAojRVhUSU5GOi0xIHR2Zy1pZD0iY29tcHJhcy0xIiB0dmctY2hubz0iMTAiIHR2Zy1sb2dvPSJodHRwOi8vMTkyLjE2OC4xLjEwOjgwOTYvaW1nL3Bvc3Rlci9jYW5hbC03LnBuZyIgZ3JvdXAtdGl0bGU9IkNvbXByYXMiLFRlbGV2ZW50YXMKaHR0cDovLzE5Mi4xNjguMS4xMDo4MDk2L2xpdmUvY2FuYWwtNy5tM3U4CiNFWFRJTkY6LTEgdHZnLWlkPSJhZHVsdG9zLTEiIHR2Zy1jaG5vPSIxMSIgdHZnLWxvZ289Imh0dHA6Ly8xOTIuMTY4LjEuMTA6ODA5Ni9pbWcvcG9zdGVyL2NhbmFsLTgucG5nIiBncm91cC10aXRsZT0iQWR1bHRvcyIsQ2FuYWwgcGFyYSBhZHVsdG9zCmh0dHA6Ly8xOTIuMTY4LjEuMTA6ODA5Ni9saXZlL2NhbmFsLTgubTN1OAo="
+ },
+ {
+  "key": "[\"GET\",\"http://192.168.1.10:8096/lista-token.m3u\",null]",
+  "status": 200,
+  "headers": [
+   [
+    "content-type",
+    "audio/x-mpegurl"
+   ],
+   [
+    "content-length",
+    "208"
+   ]
+  ],
+  "body": "I0VYVE0zVQojRVhUSU5GOi0xIHR2Zy1pZD0ibGlzdGEtMTAiIHR2Zy1jaG5vPSIxMiIgdHZnLWxvZ289Imh0dHA6Ly8xOTIuMTY4LjEuMTA6ODA5Ni9pbWcvcG9zdGVyL2NhbmFsLTEwLnBuZyIgZ3JvdXAtdGl0bGU9Ikxpc3RhIGNvbiBlbmxhY2UgcG9yIGNhbmFsIixMaXN0YSA0Cmh0dHA6Ly8xOTIuMTY4LjEuMTA6ODA5Ni9jaGFubmVscy9jYW5hbC0xMC9wbGF5Cg=="
+ }
+]

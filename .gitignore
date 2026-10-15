@@ -1,0 +1,4 @@
+# Written by `node sdk/run.mjs` while trying the plugin locally (see README.md, "Develop and test").
+.kino-cookies.json
+.kino-storage.json
+.kino-secrets.json
