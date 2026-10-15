@@ -1,4 +1,4 @@
-// TubeKino 0.1.0 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.2 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -13,14 +13,15 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.1";
+const VERSION = "0.3.2";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
 let ultimoNavegador = null;
 let ultimoResolve = null;
 
-// Diagnóstico de tendencias: por qué la portada usó el respaldo (en Estado).
+// Diagnóstico de la portada: cuántas filas se pudieron armar (en Estado y en
+// el informe "debug").
 let trazaTendencias = "";
 
 // Diagnóstico de reproducción: por dónde y en qué calidad salió el video.
@@ -41,6 +42,7 @@ function paisActual() {
 function ctxAndroid() {
   return {
     key: KEY_ANDROID,
+    num: "3",
     client: {
       clientName: "ANDROID",
       clientVersion: "21.26.364",
@@ -57,6 +59,7 @@ function ctxAndroid() {
 function ctxIos() {
   return {
     key: KEY_IOS,
+    num: "5",
     client: {
       clientName: "IOS",
       clientVersion: "21.26.4",
@@ -75,6 +78,7 @@ function ctxIos() {
 function ctxWeb() {
   return {
     key: KEY_WEB,
+    num: "1",
     client: {
       clientName: "WEB",
       clientVersion: "2.20250210.05.00",
@@ -85,11 +89,13 @@ function ctxWeb() {
   };
 }
 
-// Cliente ANDROID_VR (la app de YouTube en visores): YouTube le entrega la
-// lista completa de formatos con enlaces incluidos, hasta 1080p y más.
+// Cliente ANDROID_VR (la app de YouTube en visores): es de los pocos a los que
+// YouTube NO exige "PO tokens", así que entrega la lista completa de formatos
+// con enlaces incluidos, hasta 1080p y más (falla en videos "para niños").
 function ctxVr() {
   return {
     key: KEY_ANDROID,
+    num: "28",
     client: {
       clientName: "ANDROID_VR",
       clientVersion: "1.62.27",
@@ -99,6 +105,40 @@ function ctxVr() {
       hl: "es-419",
       gl: paisActual(),
       userAgent: "com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12; GB) gzip"
+    }
+  };
+}
+
+// Cliente WEB con navegador Safari: YouTube le entrega un manifiesto HLS
+// (m3u8) con varias calidades que, por ahora, NO exige tokens. Es la vía de
+// calidad alta cuando la app VR falla.
+function ctxWebSafari() {
+  return {
+    key: KEY_WEB,
+    num: "1",
+    client: {
+      clientName: "WEB",
+      clientVersion: "2.20250210.05.00",
+      hl: "es-419",
+      gl: paisActual(),
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
+    }
+  };
+}
+
+// Cliente WEB de videos incrustados (el reproductor de "embed"): tampoco
+// exige tokens para los videos que permiten incrustarse.
+function ctxWebEmbedded() {
+  return {
+    key: KEY_WEB,
+    num: "56",
+    extra: { thirdParty: { embedUrl: "https://www.youtube.com/" } },
+    client: {
+      clientName: "WEB_EMBEDDED_PLAYER",
+      clientVersion: "1.20250210.01.00",
+      hl: "es-419",
+      gl: paisActual(),
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
     }
   };
 }
@@ -137,6 +177,10 @@ async function innertube(endpoint, ctx, cuerpo) {
   const url = "https://www.youtube.com/youtubei/v1/" + endpoint +
     "?key=" + ctx.key + "&prettyPrint=false";
   const payload = { context: { client: ctx.client } };
+  // Algunos clientes (como el de videos incrustados) necesitan más contexto.
+  if (ctx.extra) {
+    for (const k in ctx.extra) payload.context[k] = ctx.extra[k];
+  }
   for (const k in cuerpo) payload[k] = cuerpo[k];
   return fetchJson(url, {
     method: "POST",
@@ -144,7 +188,9 @@ async function innertube(endpoint, ctx, cuerpo) {
       "Content-Type": "application/json",
       "Accept-Language": "es-419,es;q=0.8",
       "User-Agent": ctx.client.userAgent,
-      "X-YouTube-Client-Name": ctx.client.clientName === "WEB" ? "1" : ctx.client.clientName === "IOS" ? "5" : "3",
+      // El número que YouTube le da a cada cliente (WEB=1, ANDROID=3,
+      // IOS=5, ANDROID_VR=28, WEB_EMBEDDED=56). Si no lo traemos, no se lo mandamos.
+      "X-YouTube-Client-Name": String(ctx.num || "3"),
       "X-YouTube-Client-Version": ctx.client.clientVersion
     },
     body: { json: payload },
@@ -385,9 +431,55 @@ async function buscarVideos(query, cursor, limite) {
   return { items: items, next: tokenDeContinuacion(j) };
 }
 
+// El informe de diagnóstico como resultados de búsqueda: cada línea es un
+// resultado, así el texto puede ser todo lo largo que necesite (el Estado de
+// Ajustes se corta en 200 caracteres).
+function informeDebug() {
+  const lineas = [];
+  lineas.push("TubeKino " + VERSION + " — informe técnico. (Estas líneas no se pueden reproducir.)");
+  lineas.push("Config: método=" + String(kino.config.get("metodo") || "auto") +
+    ", calidad=" + String(kino.config.get("calidad") || "mejor") +
+    ", país=" + paisActual());
+  if (ultimoResolve) {
+    lineas.push("Último video: vía=" + ultimoResolve.via +
+      ", altura=" + ultimoResolve.altura +
+      (ultimoResolve.hls ? ", HLS" : "") +
+      (ultimoResolve.vivo ? ", en vivo" : ""));
+  } else {
+    lineas.push("Último video: (nada reproducido desde que se actualizó el plugin)");
+  }
+  lineas.push("Traza directo: " + (trazaDirecto || "(vacía: el directo aún no se ha probado)"));
+  lineas.push("Último navegador: " + (ultimoNavegador
+    ? ("altura=" + ultimoNavegador.altura + ", hls=" + (ultimoNavegador.hls ? "sí" : "no"))
+    : "(no usado)"));
+  lineas.push("Portada: " + (trazaTendencias || "(la portada aún no se ha abierto)"));
+  const items = [];
+  for (let i = 0; i < lineas.length; i++) {
+    // Líneas largas se parten en varios resultados para que nada se corte.
+    let resto = lineas[i];
+    let n = 1;
+    while (resto.length > 0) {
+      items.push({
+        id: "yt.debug." + i + "." + n,
+        ref: "v:debug" + i + "x" + n,
+        title: resto.slice(0, 110),
+        kind: "movie"
+      });
+      resto = resto.slice(110);
+      n = n + 1;
+    }
+  }
+  return items;
+}
+
 export async function search(query) {
   const q = query && query.q ? String(query.q).trim() : "";
   if (!q) return [];
+
+  // Informe técnico: "Estado" en Ajustes solo muestra un resumen, así que
+  // escribir "debug" (o "estado") en el buscador devuelve el detalle completo.
+  const qLower = q.toLowerCase();
+  if (qLower === "debug" || qLower === "estado") return informeDebug();
 
   // Enlace pegado: directo al video.
   const idLink = idDeEnlace(q);
@@ -423,122 +515,57 @@ function itemsDeRespuesta(j, limite) {
   return items;
 }
 
-// ---------- tendencias reales ----------
+// ---------- portada ----------
 
-// Página de tendencias: la lista "Ahora" o una categoría con su params.
-// Probamos WEB y luego ANDROID: a veces YouTube le niega una a un cliente.
-async function paginaDeTendencias(params, cursor) {
-  const cuerpo = cursor ? { continuation: cursor } : { browseId: "FEtrending" };
-  if (!cursor && params) cuerpo.params = params;
-  let detalle = "";
-  const ctxs = [ctxWeb(), ctxAndroid(), ctxVr()];
-  for (let i = 0; i < ctxs.length; i++) {
-    try {
-      const j = await innertube("browse", ctxs[i], cuerpo);
-      return { items: itemsDeRespuesta(j, 40), next: tokenDeContinuacion(j) || undefined };
-    } catch (e) {
-      detalle = detalle + ["web ", "android ", "vr "][i] +
-        String(e && e.message ? e.message : e).slice(0, 40) + "; ";
-    }
-  }
-  throw new Error(detalle.slice(0, 140));
-}
+// YouTube eliminó las tendencias: desde noviembre de 2025 la página
+// /feed/trending redirige a la portada y la API FEtrending responde 400
+// "Request contains an invalid argument" para todos los clientes (les pasa
+// también a Invidious y YouTube.js). Así que la portada son filas por temas
+// hechas con búsqueda real: siempre frescas y siempre funcionan.
+const TEMAS_PORTADA = [
+  { q: "músicas del momento", titulo: "Lo del momento — música" },
+  { q: "videojuegos del momento", titulo: "Lo del momento — videojuegos" },
+  { q: "noticias de hoy", titulo: "Lo del momento — noticias" },
+  { q: "virales del momento", titulo: "Lo del momento — virales" },
+  { q: "deportes de hoy", titulo: "Lo del momento — deportes" },
+  { q: "tecnología del momento", titulo: "Lo del momento — tecnología" },
+  { q: "estrenos de cine", titulo: "Lo del momento — cine" }
+];
 
-// Las pestañas de tendencias (Música, Videojuegos, Películas...) traen su
-// propio "params": con eso pedimos cada categoría de verdad.
-function pestanasDeTendencias(j) {
-  const hits = juntar(j, ["tabRenderer"]);
-  const salida = [];
-  for (let i = 0; i < hits.length; i++) {
-    const t = hits[i].datos;
-    const titulo = runsToText(t.title);
-    const ep = t.endpoint && t.endpoint.browseEndpoint;
-    if (!titulo || !ep || ep.browseId !== "FEtrending") continue;
-    if (typeof ep.params !== "string" || !ep.params) continue;
-    salida.push({ title: titulo, params: ep.params });
-  }
-  return salida;
-}
+const FILAS_PORTADA = [
+  { id: "trailers", title: "Trailers y avances de películas", q: "trailer oficial película", genre: "peliculas" },
+  { id: "documentales", title: "Documentales completos", q: "documental completo en español", genre: "documentales" },
+  { id: "musica", title: "Conciertos y música", q: "concierto completo", genre: "musica" },
+  { id: "juegos", title: "Gameplays y videojuegos", q: "gameplay en español", genre: "entretenimiento" }
+];
 
 export async function home() {
   const salida = [];
-  trazaTendencias = "";
-
-  // Tendencias de verdad: probamos WEB, ANDROID y la app VR (a veces uno falla).
-  let j = null;
-  let viaTendencias = "";
-  const clientesTendencias = [ctxWeb(), ctxAndroid(), ctxVr()];
-  for (let i = 0; i < clientesTendencias.length && !j; i++) {
+  // La primera fila cambia con el día para que la portada no se sienta
+  // siempre igual; el resto son los temas fijos.
+  const dia = new Date().getUTCDate();
+  const tema = TEMAS_PORTADA[dia % TEMAS_PORTADA.length];
+  const filas = [{ id: "dia", title: tema.titulo, q: tema.q, genre: "tendencias" }]
+    .concat(FILAS_PORTADA);
+  let ok = 0;
+  for (let i = 0; i < filas.length; i++) {
+    const f = filas[i];
     try {
-      j = await innertube("browse", clientesTendencias[i], { browseId: "FEtrending" });
-      viaTendencias = ["web", "android", "vr"][i];
-      trazaTendencias = "";
-    } catch (e) {
-      trazaTendencias = trazaTendencias + ["web ", "android ", "vr "][i] +
-        String(e && e.message ? e.message : e).slice(0, 45) + "; ";
-    }
+      const r = await buscarVideos(f.q, null, 18);
+      if (r.items.length > 0) {
+        ok = ok + 1;
+        salida.push({
+          id: "fila." + f.id,
+          title: f.title,
+          items: r.items,
+          ref: "search:" + f.q,
+          genre: f.genre
+        });
+      }
+    } catch (e) { /* fila omitida, las demás siguen */ }
   }
-
-  if (j) {
-    // Que el Estado siempre cuente cómo fueron las tendencias (OK o error).
-    trazaTendencias = "OK (" + viaTendencias + ")";
-    const ahora = itemsDeRespuesta(j, 20);
-    if (ahora.length > 0) {
-      salida.push({
-        id: "fila.tendencias",
-        title: "Tendencias",
-        items: ahora,
-        ref: "tr:",
-        genre: "tendencias"
-      });
-    } else {
-      trazaTendencias = viaTendencias + " respondió sin videos";
-    }
-    // Categorías reales de tendencias: Música, Videojuegos, Películas...
-    const pestanas = pestanasDeTendencias(j);
-    for (let i = 0; i < pestanas.length && i < 3; i++) {
-      try {
-        const cat = await paginaDeTendencias(pestanas[i].params, null);
-        if (cat.items.length > 0) {
-          salida.push({
-            id: "fila.tendencias." + i,
-            title: "Tendencias — " + pestanas[i].title,
-            items: cat.items.slice(0, 18),
-            ref: "tr:" + pestanas[i].params,
-            genre: "tendencias"
-          });
-        }
-      } catch (e) { /* categoría omitida, seguimos con las demás */ }
-    }
-  } else {
-    trazaTendencias = trazaTendencias.slice(0, 120);
-  }
-
-  // Respaldo si lo real no llegó: filas curadas de siempre.
-  if (salida.length < 2) {
-    const filas = [
-      { id: "trailers", title: "Trailers y avances de películas", q: "trailer oficial película", genre: "peliculas" },
-      { id: "documentales", title: "Documentales completos", q: "documental completo en español", genre: "documentales" },
-      { id: "musica", title: "Conciertos y música", q: "concierto completo", genre: "musica" },
-      { id: "juegos", title: "Gameplays y videojuegos", q: "gameplay en español", genre: "entretenimiento" }
-    ];
-    for (let i = 0; i < filas.length; i++) {
-      const f = filas[i];
-      try {
-        const r = await buscarVideos(f.q, null, 18);
-        if (r.items.length > 0) {
-          salida.push({
-            id: "fila." + f.id,
-            title: f.title,
-            items: r.items,
-            ref: "search:" + f.q,
-            genre: f.genre
-          });
-        }
-      } catch (e) { /* fila omitida, las demás siguen */ }
-    }
-  }
-
+  trazaTendencias = "portada por temas: " + ok + "/" + filas.length +
+    " filas (YouTube quitó las tendencias)";
   if (salida.length === 0) throw kino.error("unavailable", "home sin filas");
   return salida;
 }
@@ -589,7 +616,6 @@ async function paginaDeCanal(channelId, cursor) {
 export async function browse(ref, cursor) {
   ref = String(ref || "");
   if (ref.indexOf("search:") === 0) return paginaDeBusqueda(ref.slice(7), cursor);
-  if (ref.indexOf("tr:") === 0) return paginaDeTendencias(ref.slice(3), cursor);
   if (ref.indexOf("pl:") === 0) return paginaDeLista(ref.slice(3), cursor);
   if (ref.indexOf("ch:") === 0) return paginaDeCanal(ref.slice(3), cursor);
   throw kino.error("not_found", "browse ref " + ref.slice(0, 60));
@@ -697,9 +723,12 @@ function rangoAudioDeUrl(url) {
 // Vía directa: pedir los formatos a Innertube como app oficial.
 async function resolverDirectoBase(videoId) {
   let detalle = "";
-  // IPhone primero (trae el manifiesto HLS con calidades altas), luego la app
-  // de YouTube VR (formatos completos con enlaces), y Android de respaldo.
-  const clientes = [ctxIos(), ctxVr(), ctxAndroid()];
+  // Primero los clientes a los que YouTube NO exige tokens: la app VR
+  // (formatos con enlaces hasta 1080p+) y el WEB de Safari (manifiesto HLS
+  // de calidad alta). Luego el reproductor incrustado. iPhone (HLS) y
+  // Android quedan de respaldo: a ellos sí les exige tokens y suelen caer
+  // en 360p.
+  const clientes = [ctxVr(), ctxWebSafari(), ctxWebEmbedded(), ctxIos(), ctxAndroid()];
   for (let i = 0; i < clientes.length; i++) {
     const cx = clientes[i];
     let j = null;
@@ -991,10 +1020,10 @@ export async function settingsStatus() {
   const metodo = String((kino.config.get("metodo") || "auto")).trim();
   const cap = capDeCalidad();
   const calidad = cap >= 2160 ? "la mejor disponible" : "hasta " + cap + "p";
-  let texto = "TubeKino " + VERSION + ". ";
-  if (metodo === "directo") texto = texto + "Método: solo directo (rápido, YouTube bloquea algunos).";
-  else if (metodo === "navegador") texto = texto + "Método: solo navegador oculto (tarda un poco más).";
-  else texto = texto + "Auto: directo y, si sale borroso o bloqueado, navegador.";
+  let texto = "TubeKino " + VERSION + ".";
+  if (metodo === "directo") texto = texto + " Solo directo.";
+  else if (metodo === "navegador") texto = texto + " Solo navegador.";
+  else texto = texto + " Auto: directo→navegador.";
   texto = texto + " Calidad: " + calidad + ".";
   if (ultimoResolve) {
     if (ultimoResolve.vivo) texto = texto + " Último: en vivo.";
@@ -1003,12 +1032,12 @@ export async function settingsStatus() {
       texto = texto + " Último: " + ultimoResolve.altura + "p (" + ultimoResolve.via + ").";
     }
   }
-  if (trazaTendencias) {
-    texto = texto + " Tendencias: " + trazaTendencias.slice(0, 70) + ".";
-  }
+  // La traza de directo dice QUÉ cliente sirvió el video: es la clave cuando
+  // la calidad sale baja. Va antes que lo demás para que no la corte el límite.
   if (ultimoResolve && ultimoResolve.via === "directo" && !ultimoResolve.hls &&
       ultimoResolve.altura > 0 && ultimoResolve.altura < 720 && trazaDirecto) {
-    texto = texto + " Directo: " + trazaDirecto.slice(0, 45) + ".";
+    texto = texto + " Directo: " + trazaDirecto.slice(0, 60) + ".";
   }
+  texto = texto + " Detalle: busca 'debug'.";
   return { estado: texto.slice(0, 200) };
 }
