@@ -13,7 +13,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 
 // ---------- Innertube: los clientes que se presentan como apps oficiales ----------
 
@@ -492,6 +492,47 @@ function altura(f) {
   return 0;
 }
 
+// Tope de calidad elegido en Ajustes ("mejor" no pone tope).
+function capDeCalidad() {
+  const q = String(kino.config.get("calidad") || "mejor").trim();
+  if (q === "720") return 720;
+  if (q === "1080") return 1080;
+  return 2160;
+}
+
+// El "itag" es el número que YouTube le pone a cada formato; en las URLs
+// capturadas por el navegador no siempre viene la altura, pero el itag sí.
+const ITAG_ALTURA = {
+  134: 360, 133: 240, 135: 480, 136: 720, 137: 1080, 138: 2160, 160: 144,
+  264: 1440, 266: 2160, 298: 720, 299: 1080,
+  394: 144, 395: 240, 396: 360, 397: 480, 398: 720, 399: 1080, 400: 1440, 401: 2160
+};
+
+function itagDeUrl(url) {
+  const m = String(url).match(/itag(?:=|\/)(\d+)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+// Altura de una URL capturada (height/quality_label explícitos o vía itag).
+function alturaDeUrl(url) {
+  const s = String(url);
+  let m = s.match(/height(?:=|%3D|\/)(\d{3,4})/i) ||
+          s.match(/quality_label(?:=|%3D|\/)(\d{3,4})p?/i);
+  if (m) return parseInt(m[1], 10);
+  const it = itagDeUrl(s);
+  return ITAG_ALTURA[it] || 0;
+}
+
+// Ranking de pistas de audio mp4 por itag (140 es la estándar y mejor).
+const ITAG_AUDIO = { 140: 4, 258: 3, 256: 2, 139: 1 };
+
+function rangoAudioDeUrl(url) {
+  const s = String(url);
+  const m = s.match(/average_bitrate(?:=|\/)(\d+)/i) || s.match(/bitrate(?:=|\/)(\d+)/i);
+  if (m) return parseInt(m[1], 10);
+  return (ITAG_AUDIO[itagDeUrl(s)] || 0) * 1000;
+}
+
 // Vía directa: pedir los formatos a Innertube como app oficial.
 async function resolverDirecto(videoId) {
   let detalle = "";
@@ -524,46 +565,61 @@ async function resolverDirecto(videoId) {
 
     const formats = Array.isArray(sd.formats) ? sd.formats : [];
     const adaptive = Array.isArray(sd.adaptiveFormats) ? sd.adaptiveFormats : [];
+    const cap = capDeCalidad();
 
-    // 1) Formato completo (video + audio en el mismo archivo): lo más confiable.
+    // Formatos completos (video + audio en el mismo archivo): confiables,
+    // pero YouTube solo los entrega en 360p/720p. Quedan de plan B.
     const completos = [];
     for (let k = 0; k < formats.length; k++) {
       const f = formats[k];
       if (f && typeof f.url === "string" && f.url.indexOf("https://") === 0 &&
-          String(f.mimeType || "").indexOf("video/") === 0 && tieneAudio(f)) {
+          String(f.mimeType || "").indexOf("video/") === 0 && tieneAudio(f) &&
+          altura(f) <= cap) {
         completos.push(f);
       }
     }
-    if (completos.length > 0) {
-      completos.sort(function (a, b) { return altura(b) - altura(a); });
-      return {
-        url: completos[0].url,
-        mime: "video/mp4",
-        headers: { "User-Agent": cx.client.userAgent }
-      };
-    }
 
-    // 2) Sin formato completo: video por un lado, audio por el otro, y Kino
-    //    los reproduce juntos (audioTracks). Calidad HD incluso.
+    // Video y audio por separado: aquí vive la calidad alta (1080p y más).
     const vids = [];
     const auds = [];
     for (let k = 0; k < adaptive.length; k++) {
       const f = adaptive[k];
       if (!f || typeof f.url !== "string" || f.url.indexOf("https://") !== 0) continue;
       const mt = String(f.mimeType || "");
-      if (mt.indexOf("video/mp4") === 0) vids.push(f);
+      if (mt.indexOf("video/mp4") === 0 && altura(f) <= cap) vids.push(f);
       else if (mt.indexOf("audio/mp4") === 0) auds.push(f);
     }
-    if (vids.length > 0 && auds.length > 0) {
-      vids.sort(function (a, b) { return altura(b) - altura(a); });
-      auds.sort(function (a, b) {
-        return (b.averageBitrate || b.bitrate || 0) - (a.averageBitrate || a.bitrate || 0);
-      });
+
+    vids.sort(function (a, b) { return altura(b) - altura(a); });
+    auds.sort(function (a, b) {
+      return (b.averageBitrate || b.bitrate || 0) - (a.averageBitrate || a.bitrate || 0);
+    });
+    completos.sort(function (a, b) { return altura(b) - altura(a); });
+
+    // Mejor calidad: video HD por un lado + audio por el otro; Kino los une.
+    if (vids.length > 0 && auds.length > 0 &&
+        (completos.length === 0 || altura(vids[0]) > altura(completos[0]))) {
       return {
         url: vids[0].url,
         mime: "video/mp4",
         headers: { "User-Agent": cx.client.userAgent },
         audioTracks: [{ lang: "und", url: auds[0].url }]
+      };
+    }
+    // Si no hay nada mejor que el combinado, usamos el combinado.
+    if (completos.length > 0) {
+      return {
+        url: completos[0].url,
+        mime: "video/mp4",
+        headers: { "User-Agent": cx.client.userAgent }
+      };
+    }
+    // Última oportunidad: adaptativo aunque falte la pista de audio.
+    if (vids.length > 0) {
+      return {
+        url: vids[0].url,
+        mime: "video/mp4",
+        headers: { "User-Agent": cx.client.userAgent }
       };
     }
     detalle = detalle + " [" + cx.client.clientName + ": sin formatos utilizables]";
@@ -631,11 +687,11 @@ async function resolverNavegador(videoId) {
   // las dos pistas por separado; Kino las une).
   const esVideo = function (m) {
     if (m.mime && String(m.mime).indexOf("video/") === 0) return true;
-    return /mime=video/i.test(m.url);
+    return /(mime=|mime%3D|mime\/)video/i.test(m.url);
   };
   const esAudio = function (m) {
     if (m.mime && String(m.mime).indexOf("audio/") === 0) return true;
-    return /mime=audio/i.test(m.url);
+    return /(mime=|mime%3D|mime\/)audio/i.test(m.url);
   };
 
   const vids = [];
@@ -647,18 +703,30 @@ async function resolverNavegador(videoId) {
   }
 
   if (vids.length > 0) {
-    // Preferir mp4 sobre webm.
-    let principal = null;
+    // Preferir mp4 sobre webm y, entre los mp4, la mejor altura dentro del tope.
+    const cap = capDeCalidad();
+    const mp4 = [];
     for (let i = 0; i < vids.length; i++) {
-      if (/mime=video(%2f|\/)mp4/i.test(vids[i].url)) { principal = vids[i]; break; }
+      if (/(?:mime=|mime%3D|mime\/)video(?:%2f|\/)mp4/i.test(vids[i].url)) mp4.push(vids[i]);
     }
-    if (!principal && vids[0]) principal = vids[0];
+    let principal = null;
+    if (mp4.length > 0) {
+      mp4.sort(function (a, b) { return alturaDeUrl(b.url) - alturaDeUrl(a.url); });
+      for (let i = 0; i < mp4.length; i++) {
+        if (alturaDeUrl(mp4[i].url) <= cap) { principal = mp4[i]; break; }
+      }
+      if (!principal) principal = mp4[mp4.length - 1];
+    }
+    if (!principal) principal = vids[0];
     const stream = { url: principal.url, mime: "video/mp4" };
     if (principal.headers) stream.headers = principal.headers;
-    if (auds.length > 0) {
+    // Si el elegido ya trae el audio incluido (itag 18/22), no hay que unir nada.
+    const it = itagDeUrl(principal.url);
+    if (it !== 18 && it !== 22 && auds.length > 0) {
+      auds.sort(function (a, b) { return rangoAudioDeUrl(b.url) - rangoAudioDeUrl(a.url); });
       let audio = null;
       for (let i = 0; i < auds.length; i++) {
-        if (/mime=audio(%2f|\/)mp4/i.test(auds[i].url)) { audio = auds[i]; break; }
+        if (/(?:mime=|mime%3D|mime\/)audio(?:%2f|\/)mp4/i.test(auds[i].url)) { audio = auds[i]; break; }
       }
       if (!audio) audio = auds[0];
       stream.audioTracks = [{ lang: "und", url: audio.url }];
@@ -703,9 +771,12 @@ export async function resolve(ref, options) {
 
 export async function settingsStatus() {
   const metodo = String((kino.config.get("metodo") || "auto")).trim();
+  const cap = capDeCalidad();
+  const calidad = cap >= 2160 ? "calidad: la mejor disponible" : "calidad: hasta " + cap + "p";
   let texto;
   if (metodo === "directo") texto = "Método: solo directo. Rápido, pero YouTube bloquea algunos videos.";
   else if (metodo === "navegador") texto = "Método: solo navegador oculto. Puede tardar unos segundos en empezar.";
-  else texto = "Método automático: directo primero y, si YouTube bloquea, navegador oculto. También puedes pegar enlaces de YouTube en el buscador de Kino.";
+  else texto = "Método automático: directo primero y, si YouTube bloquea, navegador oculto.";
+  texto = texto + " " + calidad + ". También puedes pegar enlaces de YouTube en el buscador.";
   return { estado: texto.slice(0, 200) };
 }
