@@ -1,7 +1,7 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Busca y reproduce videos, listas y canales de YouTube con doble estrategia: extracción directa y, cuando YouTube bloquea, el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
