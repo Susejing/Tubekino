@@ -1,7 +1,7 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.3.19",
+  "version": "0.3.20",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Busca y reproduce videos, listas y canales de YouTube con triple estrategia: extracción directa, respaldo en servidores de la comunidad (instancias de Invidious) para la calidad alta, y el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
@@ -10,8 +10,7 @@
   "browser": true,
   "debug": true,
   "settings": [
-    { "key": "ajustes", "label": "Reproducción", "type": "section", "hint": "Si un video falla, inténtalo otra vez: el plugin cambia de método solo." },
-    { "key": "metodo", "label": "Método de reproducción", "type": "select", "default": "auto",
+    { "key": "ajustes", "label": "Reproducción", "type": "section", "hint": "Si un video falla, inténtalo otra vez: el plugin cambia de método solo." },    { "key": "metodo", "label": "Método de reproducción", "type": "select", "default": "auto",
       "options": [
         { "value": "auto", "label": "Automático (recomendado)" },
         { "value": "navegador", "label": "Solo navegador oculto" },
@@ -58,5 +57,7 @@
     { "key": "servidor", "label": "Servidor propio (opcional)", "type": "url",
       "hint": "URL de tu Invidious, ej: http://192.168.1.50:3000. Se usa primero." },
     { "key": "estado", "label": "Estado", "type": "status" }
-  ]
+  ],
+  "color": "#FF0033",
+  "icon": "icon.png"
 }
