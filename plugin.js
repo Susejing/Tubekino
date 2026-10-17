@@ -1,4 +1,4 @@
-// TubeKino 0.3.20 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.21 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -27,7 +27,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.20";
+const VERSION = "0.3.21";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -818,6 +818,24 @@ export async function search(query) {
   const q = query && query.q ? String(query.q).trim() : "";
   const cursor = query && typeof query.cursor === "string" && query.cursor ? query.cursor : null;
 
+  // Búsqueda DENTRO de una página (capability scopedSearch): Kino pasa en
+  // query.within el ref de la fila o categoría, tal como se lo dimos. En las
+  // nuestras ("search:tema") se busca el tema junto con lo que escribió la
+  // persona; en las que no son de búsqueda (canales, listas) se devuelve
+  // null y Kino filtra lo ya cargado por su cuenta.
+  if (query && typeof query.within === "string" && query.within) {
+    const dentro = String(query.within);
+    if (dentro.indexOf("search:") !== 0) return null;
+    const tema = dentro.slice(7).trim();
+    if (!tema || !q) return null;
+    const qDentro = tema + " " + q;
+    try {
+      return paginaBusqueda(qDentro, await buscarVideos(qDentro, cursor, 30));
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Página siguiente de la misma búsqueda: al fondo del scroll, Kino la pide
   // con el cursor y la búsqueda sigue donde se quedó, página tras página.
   if (cursor) {
@@ -1469,7 +1487,8 @@ async function resolverDirectoBase(videoId) {
         url: sd.hlsManifestUrl,
         mime: "application/vnd.apple.mpegurl",
         headers: { "User-Agent": cx.client.userAgent },
-        esVivo: !!(j.videoDetails && j.videoDetails.isLive === true)
+        esVivo: !!(j.videoDetails && j.videoDetails.isLive === true),
+        label: "YouTube HLS"
       };
       const subsHls = subsDeInnertube(j);
       if (subsHls) stHls.subtitles = subsHls;
@@ -1535,6 +1554,7 @@ async function resolverDirectoBase(videoId) {
     if (st) {
       const subsSt = subsDeInnertube(j);
       if (subsSt) st.subtitles = subsSt;
+      st.label = texto.slice(0, 48);
       trazaClientes.push(et + ": " + texto.slice(et.length + 1) + " ✓");
       // Con calidad alta (720p o el tope si es menor) nos quedamos ya.
       const aceptable = cap < 720 ? cap : 720;
@@ -1575,6 +1595,7 @@ async function resolverDirectoBase(videoId) {
         rachaPaginaSinHls = 0;
         trazaClientes.push("PÁGINA (" + intento + "/" + intentosPagina + "): HLS ✓");
         trazaDirecto = "PÁGINA HLS";
+        pag.stream.label = "YouTube HLS";
         return pag.stream;
       }
       rachaPaginaSinHls++;
@@ -1820,6 +1841,7 @@ async function pedirRespaldo(videoId, ent) {
     if (mejor) {
       const st = { url: mejor.url, mime: "video/mp4" };
       if (mejor.audio) st.audioTracks = [{ lang: "und", url: mejor.audio }];
+      st.label = (ent.propio ? "Tu servidor" : "Respaldo Piped") + " " + mejor.altura + "p";
       const subsPiped = subsDeRespaldo(j, ent.base);
       if (subsPiped) st.subtitles = subsPiped;
       return { stream: st, altura: mejor.altura, vivo: false };
@@ -1868,6 +1890,7 @@ async function pedirRespaldo(videoId, ent) {
     al = alturaEtiqueta(vids[0]);
   }
   if (st) {
+    st.label = (ent.propio ? "Tu servidor" : "Respaldo") + " " + al + "p";
     const subsInv = subsDeRespaldo(j, ent.base);
     if (subsInv) st.subtitles = subsInv;
     return { stream: st, altura: al, vivo: false };
