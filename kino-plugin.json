@@ -1,7 +1,7 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.3.17",
+  "version": "0.3.18",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Busca y reproduce videos, listas y canales de YouTube con triple estrategia: extracción directa, respaldo en servidores de la comunidad (instancias de Invidious) para la calidad alta, y el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
