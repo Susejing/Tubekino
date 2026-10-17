@@ -1,7 +1,7 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.3.15",
+  "version": "0.3.17",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Busca y reproduce videos, listas y canales de YouTube con triple estrategia: extracción directa, respaldo en servidores de la comunidad (instancias de Invidious) para la calidad alta, y el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
@@ -49,6 +49,12 @@
         { "value": "no", "label": "No: solo YouTube" }
       ],
       "hint": "En aparatos con poca RAM, 'Sí' evita los 'out of memory'." },
+    { "key": "relacionados", "label": "Videos relacionados", "type": "select", "default": "si",
+      "options": [
+        { "value": "si", "label": "Sí: parecidos en el panel al reproducir" },
+        { "value": "no", "label": "No: el panel queda vacío" }
+      ],
+      "hint": "Los videos parecidos, como la barra lateral de YouTube." },
     { "key": "servidor", "label": "Servidor propio (opcional)", "type": "url",
       "hint": "URL de tu Invidious, ej: http://192.168.1.50:3000. Se usa primero." },
     { "key": "estado", "label": "Estado", "type": "status" }
