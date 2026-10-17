@@ -1,4 +1,4 @@
-// TubeKino 0.3.19 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.20 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -27,7 +27,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.19";
+const VERSION = "0.3.20";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -2177,4 +2177,4 @@ export async function settingsStatus() {
   // viven solo en el informe "debug": el Estado queda limpio, sin avisos de
   // error, como corresponde a un ajuste que ve cualquier usuario.
   return { estado: (texto + " Detalle: busca 'debug'.").slice(0, 200) };
-    }
+      }
