@@ -1,12 +1,12 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.3.20",
+  "version": "0.3.21",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Busca y reproduce videos, listas y canales de YouTube con triple estrategia: extracción directa, respaldo en servidores de la comunidad (instancias de Invidious) para la calidad alta, y el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
   "hosts": ["youtube.com", "*.youtube.com", "youtu.be", "*.ytimg.com", "googlevideo.com", "*.googlevideo.com", "inv.nadeko.net", "invidious.nerdvpn.de", "yt.chocolatemoo53.com", "invidious.tiekoetter.com", "invidious.f5.si", "pipedapi.kavin.rocks", "pipedapi-libre.kavin.rocks", "pipedapi.leptons.xyz", "pipedapi.nosebs.ru", "piped-api.privacy.com.de", "pipedapi.adminforge.de", "api.piped.yt", "pipedapi.drgns.space", "pipedapi.owo.si", "pipedapi.ducks.party", "piped-api.codespace.cz", "pipedapi.reallyaweso.me", "api.piped.private.coffee", "pipedapi.darkness.services", "pipedapi.orangenet.cc"],
-  "capabilities": ["search", "home", "browse", "episodes", "resolve"],
+  "capabilities": ["search", "home", "browse", "episodes", "resolve", "scopedSearch"],
   "browser": true,
   "debug": true,
   "settings": [
