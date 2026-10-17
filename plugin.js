@@ -1,4 +1,4 @@
-// TubeKino 0.3.15 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.17 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -27,7 +27,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.15";
+const VERSION = "0.3.17";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -743,6 +743,11 @@ function informeDebug() {
     lineas.push("Último video: (nada reproducido desde que se actualizó el plugin)");
   }
   lineas.push("Traza directo: " + (trazaDirecto || "(vacía: el directo aún no se ha probado)"));
+  lineas.push("Relacionados (panel): " + (String(kino.config.get("relacionados") || "si").trim() !== "no"
+    ? "activado; " + (ultimoRel && cacheRel[ultimoRel]
+        ? cacheRel[ultimoRel].items.length + " parecidos del último video"
+        : "aún sin datos")
+    : "apagado en Ajustes"));
   // Qué le respondió YouTube a cada cliente en el último intento directo.
   if (trazaClientes.length > 0) {
     lineas.push("Clientes probados en el último video (en orden):");
@@ -778,8 +783,34 @@ function informeDebug() {
   return items;
 }
 
+// Entre páginas de la misma búsqueda no se repite nada: cuando Kino pide la
+// siguiente página (el scroll llegó al fondo), aquí se recuerda lo ya visto.
+var vistosBusq = { q: null, ids: null };
+function paginaBusqueda(q, r) {
+  if (vistosBusq.q !== q) vistosBusq = { q: q, ids: {} };
+  const items = [];
+  for (let i = 0; i < r.items.length; i++) {
+    const it = r.items[i];
+    if (it && it.id && !vistosBusq.ids[it.id]) {
+      vistosBusq.ids[it.id] = 1;
+      items.push(it);
+    }
+  }
+  const pagina = { items: items };
+  if (r.next && items.length > 0) pagina.next = r.next;
+  return pagina;
+}
+
 export async function search(query) {
   const q = query && query.q ? String(query.q).trim() : "";
+  const cursor = query && typeof query.cursor === "string" && query.cursor ? query.cursor : null;
+
+  // Página siguiente de la misma búsqueda: al fondo del scroll, Kino la pide
+  // con el cursor y la búsqueda sigue donde se quedó, página tras página.
+  if (cursor) {
+    return paginaBusqueda(q, await buscarVideos(q, cursor, 30));
+  }
+
   if (!q) return [];
 
   // Informe técnico: "Estado" en Ajustes solo muestra un resumen, así que
@@ -797,13 +828,14 @@ export async function search(query) {
   // Búsqueda normal: videos, y también canales y listas que coincidan.
   // Si la memoria no aguanta la respuesta de YouTube, los respaldos buscan
   // (sus respuestas son livianas); tras un rato sin revientes, YouTube vuelve.
+  // La primera página trae su cursor: el scroll puede seguir pidiendo más.
   if (youtubeBuscable()) {
     try {
       const j = await innertube("search", ctxAndroid(), { query: q });
       const items = itemsDeRespuesta(j, 30);
       rachaBusqMem = 0;
       trazaBusqueda = "YouTube directo (" + items.length + " resultados)";
-      return items;
+      return paginaBusqueda(q, { items: items, next: tokenDeContinuacion(j) || "bs:2" });
     } catch (e) {
       if (modoBusqueda() === "no" || !esErrorMemoria(e)) throw e;
       notaBusqMemoria(e);
@@ -813,8 +845,7 @@ export async function search(query) {
       ? "Búsqueda liviana (Ajustes): respaldos"
       : "YouTube en reposo (memoria): respaldos";
   }
-  const r = await buscarRespaldo(q, null, 30);
-  return r.items;
+  return paginaBusqueda(q, await buscarRespaldo(q, null, 30));
 }
 
 // Convierte una respuesta de búsqueda en items de Kino: videos, canales y listas.
@@ -858,9 +889,11 @@ const TEMAS_PORTADA = [
 
 const FILAS_PORTADA = [
   { id: "trailers", title: "Trailers y avances de películas", q: "trailer oficial película", genre: "peliculas" },
-  { id: "documentales", title: "Documentales completos", q: "documental completo en español", genre: "documentales" },
   { id: "musica", title: "Conciertos y música", q: "concierto completo", genre: "musica" },
-  { id: "juegos", title: "Gameplays y videojuegos", q: "gameplay en español", genre: "entretenimiento" }
+  { id: "juegos", title: "Videojuegos", q: "gameplay en español", genre: "entretenimiento" },
+  { id: "android", title: "Android y celulares", q: "novedades android", genre: "otros" },
+  { id: "sistemas", title: "Sistemas operativos", q: "novedades sistemas operativos", genre: "otros" },
+  { id: "doramas", title: "Doramas", q: "dorama español latino capítulos", genre: "series" }
 ];
 
 export async function home() {
@@ -892,6 +925,19 @@ export async function home() {
     " filas (YouTube quitó las tendencias)";
   if (salida.length === 0) throw kino.error("unavailable", "home sin filas");
   return salida;
+}
+
+// Las categorías de la pestaña Categorías de Kino: al estilo de las pestañas
+// de YouTube, cada una abre su "Ver más" con la cuadrícula paginada.
+export async function categories() {
+  return [
+    { id: "cat.trailers", title: "Trailers de películas", ref: "search:trailer oficial película" },
+    { id: "cat.musica", title: "Música", ref: "search:concierto completo" },
+    { id: "cat.juegos", title: "Videojuegos", ref: "search:gameplay en español" },
+    { id: "cat.android", title: "Android y celulares", ref: "search:novedades android" },
+    { id: "cat.sistemas", title: "Sistemas operativos", ref: "search:novedades sistemas operativos" },
+    { id: "cat.doramas", title: "Doramas", ref: "search:dorama español latino capítulos" }
+  ];
 }
 
 // ---------- páginas (Ver más) ----------
@@ -947,10 +993,124 @@ export async function browse(ref, cursor) {
 
 // ---------- episodios (canal o lista como temporada única) ----------
 
+// ---------- videos relacionados (el panel derecho de Kino) ----------
+
+// Los "episodios" de un video suelto son los videos parecidos: el panel
+// derecho los lista mientras se reproduce, como la barra lateral de YouTube.
+// Se guardan cuando un respaldo ya trajo los datos del video (sin peticiones
+// extra); si vienen fríos, se piden a Invidious una sola vez y se guardan.
+var cacheRel = {};
+var ultimoRel = "";
+
+function guardarRel(videoId, lista) {
+  if (!lista || lista.length === 0) return;
+  cacheRel[videoId] = { items: lista.slice(0, 19), t: Date.now() };
+  ultimoRel = videoId;
+  const claves = Object.keys(cacheRel);
+  if (claves.length > 12) {
+    claves.sort(function (a, b) { return cacheRel[a].t - cacheRel[b].t; });
+    while (claves.length > 12) delete cacheRel[claves.shift()];
+  }
+}
+
+// Saca los recomendados de una respuesta de Invidious (recommendedVideos)
+// o de Piped (relatedStreams).
+function relDeRespuesta(j) {
+  const fuera = [];
+  const rec = j && Array.isArray(j.recommendedVideos) ? j.recommendedVideos : null;
+  if (rec) {
+    for (let i = 0; i < rec.length && fuera.length < 19; i++) {
+      const r = rec[i] || {};
+      if (!r.videoId || typeof r.title !== "string" || !r.title) continue;
+      let still = "";
+      const th = Array.isArray(r.videoThumbnails) ? r.videoThumbnails : [];
+      for (let k = 0; k < th.length; k++) {
+        if (th[k] && th[k].url && String(th[k].url).indexOf("https://") === 0) { still = th[k].url; break; }
+      }
+      fuera.push({
+        id: String(r.videoId),
+        title: r.title.slice(0, 90),
+        still: still,
+        min: r.lengthSeconds > 0 ? Math.round(r.lengthSeconds / 60) : 0
+      });
+    }
+    return fuera;
+  }
+  const rel = j && Array.isArray(j.relatedStreams) ? j.relatedStreams : null;
+  if (rel) {
+    for (let i = 0; i < rel.length && fuera.length < 19; i++) {
+      const r = rel[i] || {};
+      const m = /[?&]v=([A-Za-z0-9_-]{11})/.exec(String(r.url || ""));
+      if (!m || typeof r.title !== "string" || !r.title) continue;
+      fuera.push({
+        id: m[1],
+        title: r.title.slice(0, 90),
+        still: String(r.thumbnail || "").indexOf("https://") === 0 ? r.thumbnail : "",
+        min: r.duration > 0 ? Math.round(r.duration / 60) : 0
+      });
+    }
+  }
+  return fuera;
+}
+
+async function videosRelacionados(videoId) {
+  const c = cacheRel[videoId];
+  if (c && Date.now() - c.t < 900000) return c.items;
+  const propio = String(kino.config.get("servidor") || "").trim().replace(/\/+$/, "");
+  const lista = [];
+  if (propio) lista.push(propio);
+  if (String(kino.config.get("respaldo") || "si").trim() !== "no") {
+    for (let i = 0; i < POOL.length; i++) {
+      const ent = POOL[(cursorRespaldos + i) % POOL.length];
+      if (ent.api !== "invidious") continue;
+      let repetido = false;
+      for (let k = 0; k < lista.length; k++) {
+        if (lista[k] === ent.base) { repetido = true; break; }
+      }
+      if (!repetido) lista.push(ent.base);
+    }
+  }
+  for (let i = 0; i < lista.length && i < 3; i++) {
+    try {
+      const j = await fetchJson(lista[i] + "/api/v1/videos/" + videoId, {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        timeoutMs: 5000
+      });
+      if (j && typeof j.error === "string" && j.error) continue;
+      const items = relDeRespuesta(j);
+      if (items.length > 0) {
+        guardarRel(videoId, items);
+        return items;
+      }
+    } catch (e) {
+      // siguiente servidor
+    }
+  }
+  return [];
+}
+
 export async function episodes(ref) {
   ref = String(ref || "");
   if (ref.indexOf("v:") === 0) {
-    return { episodes: [{ number: 1, ref: ref }] };
+    // El video mismo es el "episodio 1"; detrás van los parecidos, que
+    // llenan el panel derecho mientras reproduce. Si algo falla, el video
+    // solo, como siempre: nada de esto puede romper la reproducción.
+    const epsVid = [{ number: 1, ref: ref }];
+    if (String(kino.config.get("relacionados") || "si").trim() !== "no") {
+      try {
+        const rel = await videosRelacionados(ref.slice(2));
+        for (let i = 0; i < rel.length; i++) {
+          const ep = { number: i + 2, ref: "v:" + rel[i].id, title: rel[i].title };
+          if (rel[i].still) ep.still = rel[i].still;
+          if (rel[i].min > 0) ep.runtimeMinutes = rel[i].min;
+          epsVid.push(ep);
+        }
+      } catch (e) {
+        // sin panel: nada grave
+      }
+    }
+    return { episodes: epsVid };
   }
   let eps = [];
   if (ref.indexOf("pl:") === 0) {
@@ -1442,6 +1602,7 @@ async function pedirRespaldo(videoId, ent) {
       timeoutMs: 6000
     });
     if (j && typeof j.error === "string" && j.error) throw new Error(String(j.error).slice(0, 60));
+    try { guardarRel(videoId, relDeRespuesta(j)); } catch (e2) {}
     if (j.liveStream === true && typeof j.hls === "string" && j.hls.indexOf("http") === 0) {
       return { stream: { url: j.hls, mime: "application/vnd.apple.mpegurl", esVivo: true }, altura: 0, vivo: true };
     }
@@ -1482,6 +1643,7 @@ async function pedirRespaldo(videoId, ent) {
     timeoutMs: 6000
   });
   if (j && typeof j.error === "string" && j.error) throw new Error(String(j.error).slice(0, 60));
+  try { guardarRel(videoId, relDeRespuesta(j)); } catch (e2) {}
   if (j.liveNow === true && typeof j.hlsUrl === "string" && j.hlsUrl.indexOf("http") === 0) {
     return { stream: { url: j.hlsUrl, mime: "application/vnd.apple.mpegurl", esVivo: true }, altura: 0, vivo: true };
   }
