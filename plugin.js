@@ -1,4 +1,4 @@
-// TubeKino 0.3.18 — YouTube en Kino: búsqueda, listas, canales y reproducción.
+// TubeKino 0.3.19 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
 // Este plugin usa la misma API interna que las apps oficiales de YouTube
@@ -27,7 +27,7 @@
 // (youtu.be/..., youtube.com/watch?v=..., /shorts/..., /live/...) y se abre
 // directo.
 
-const VERSION = "0.3.18";
+const VERSION = "0.3.19";
 
 // Diagnóstico: qué sirvió cada vía en el último video (se ve en Ajustes).
 let ultimoDirecto = null;
@@ -1356,6 +1356,71 @@ function esperar(ms) {
 // Vía directa: pedir los formatos a Innertube como app oficial.
 // Cada intento queda registrado en trazaClientes (visible con "debug"):
 // es lo que nos dice QUÉ le respondió YouTube a cada cliente.
+// Los subtítulos de un video de YouTube: los captions (manuales y
+// automáticos) en formato VTT, para que el reproductor de Kino los tome.
+// Manuales primero, español primero; a lo sumo 8 pistas.
+function subsDeInnertube(j) {
+  if (!j || !j.captions || !j.captions.playerCaptionsTracklistRenderer) return null;
+  const tracks = j.captions.playerCaptionsTracklistRenderer.captionTracks;
+  if (!Array.isArray(tracks) || tracks.length === 0) return null;
+  const esp = function (t) { return String(t.languageCode || "").toLowerCase().indexOf("es") === 0; };
+  const orden = tracks.slice(0);
+  orden.sort(function (a, b) {
+    const am = String(a.kind || "") === "asr" ? 1 : 0;
+    const bm = String(b.kind || "") === "asr" ? 1 : 0;
+    if (am !== bm) return am - bm;
+    const ae = esp(a) ? 0 : 1;
+    const be = esp(b) ? 0 : 1;
+    if (ae !== be) return ae - be;
+    return 0;
+  });
+  const subs = [];
+  for (let i = 0; i < orden.length && subs.length < 8; i++) {
+    const t = orden[i];
+    if (!t || typeof t.baseUrl !== "string" || t.baseUrl.indexOf("http") !== 0) continue;
+    const codigo = String(t.languageCode || "und").slice(0, 8) || "und";
+    const url = t.baseUrl + (t.baseUrl.indexOf("fmt=") >= 0 ? "" : "&fmt=vtt");
+    subs.push({ lang: codigo, url: url, format: "vtt" });
+  }
+  return subs.length > 0 ? subs : null;
+}
+
+// Lo mismo desde la respuesta de Invidious (j.captions) o de Piped
+// (j.subtitles): los captions que ya traen sus /api/v1/videos y /api/streams.
+function subsDeRespaldo(j, base) {
+  const subs = [];
+  const raiz = String(base || "").replace(/\/$/, "");
+  const caps = j && Array.isArray(j.captions) ? j.captions : null;
+  if (caps) {
+    for (let i = 0; i < caps.length && subs.length < 8; i++) {
+      const t = caps[i] || {};
+      let url = String(t.url || "");
+      if (!url) continue;
+      if (url.indexOf("http") !== 0) url = raiz + (url.indexOf("/") === 0 ? url : "/" + url);
+      if (url.indexOf("http") !== 0) continue;
+      let codigo = String(t.language_code || t.languageCode || "").slice(0, 8);
+      if (!codigo) codigo = /espa|spanish/i.test(String(t.label || "")) ? "es" : "und";
+      subs.push({ lang: codigo, url: url, format: "vtt" });
+    }
+    return subs.length > 0 ? subs : null;
+  }
+  const pis = j && Array.isArray(j.subtitles) ? j.subtitles : null;
+  if (pis) {
+    for (let i = 0; i < pis.length && subs.length < 8; i++) {
+      const t = pis[i] || {};
+      let url = String(t.url || "");
+      if (!url) continue;
+      if (url.indexOf("http") !== 0) url = raiz + (url.indexOf("/") === 0 ? url : "/" + url);
+      if (url.indexOf("http") !== 0) continue;
+      if (/timedtext/.test(url) && url.indexOf("fmt=") < 0) url = url + "&fmt=vtt";
+      const codigo = String(t.code || t.languageCode || "").slice(0, 8) || "und";
+      subs.push({ lang: codigo, url: url, format: "vtt" });
+    }
+    if (subs.length > 0) return subs;
+  }
+  return null;
+}
+
 async function resolverDirectoBase(videoId) {
   let detalle = "";
   trazaClientes = [];
@@ -1400,12 +1465,15 @@ async function resolverDirectoBase(videoId) {
     if (typeof sd.hlsManifestUrl === "string" && sd.hlsManifestUrl.indexOf("https://") === 0) {
       trazaDirecto = et + " HLS";
       trazaClientes.push(et + ": HLS ✓");
-      return {
+      const stHls = {
         url: sd.hlsManifestUrl,
         mime: "application/vnd.apple.mpegurl",
         headers: { "User-Agent": cx.client.userAgent },
         esVivo: !!(j.videoDetails && j.videoDetails.isLive === true)
       };
+      const subsHls = subsDeInnertube(j);
+      if (subsHls) stHls.subtitles = subsHls;
+      return stHls;
     }
 
     const formats = Array.isArray(sd.formats) ? sd.formats : [];
@@ -1465,6 +1533,8 @@ async function resolverDirectoBase(videoId) {
       texto = et + " " + al + "p sin audio";
     }
     if (st) {
+      const subsSt = subsDeInnertube(j);
+      if (subsSt) st.subtitles = subsSt;
       trazaClientes.push(et + ": " + texto.slice(et.length + 1) + " ✓");
       // Con calidad alta (720p o el tope si es menor) nos quedamos ya.
       const aceptable = cap < 720 ? cap : 720;
@@ -1750,6 +1820,8 @@ async function pedirRespaldo(videoId, ent) {
     if (mejor) {
       const st = { url: mejor.url, mime: "video/mp4" };
       if (mejor.audio) st.audioTracks = [{ lang: "und", url: mejor.audio }];
+      const subsPiped = subsDeRespaldo(j, ent.base);
+      if (subsPiped) st.subtitles = subsPiped;
       return { stream: st, altura: mejor.altura, vivo: false };
     }
     throw new Error("sin enlaces utilizables");
@@ -1795,7 +1867,11 @@ async function pedirRespaldo(videoId, ent) {
     st = { url: vids[0].url, mime: "video/mp4", audioTracks: [{ lang: "und", url: auds[0].url }] };
     al = alturaEtiqueta(vids[0]);
   }
-  if (st) return { stream: st, altura: al, vivo: false };
+  if (st) {
+    const subsInv = subsDeRespaldo(j, ent.base);
+    if (subsInv) st.subtitles = subsInv;
+    return { stream: st, altura: al, vivo: false };
+  }
   throw new Error("sin enlaces utilizables");
 }
 
@@ -2101,4 +2177,4 @@ export async function settingsStatus() {
   // viven solo en el informe "debug": el Estado queda limpio, sin avisos de
   // error, como corresponde a un ajuste que ve cualquier usuario.
   return { estado: (texto + " Detalle: busca 'debug'.").slice(0, 200) };
-}
+    }
