@@ -2118,6 +2118,13 @@ async function resolverNavegador(videoId) {
 }
 
 export async function resolve(ref, options) {
+  // ---- Fase 3: TubeKino Resolver — la app propia resuelve los videos ----
+  if (typeof ref === "string" && ref.indexOf("v:") === 0) {
+    const idFase3 = ref.slice(2);
+    if (/^[A-Za-z0-9_-]{11}$/.test(idFase3)) {
+      return { external: { protocol: "ytvideo", ref: "yt:" + idFase3, resolver: "com.susejing.tubekino" } };
+    }
+  }
   const videoId = refAVideoId(ref);
   if (!videoId) throw kino.error("not_found", "ref no es un video: " + String(ref).slice(0, 60));
 
