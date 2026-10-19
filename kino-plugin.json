@@ -1,16 +1,18 @@
 {
   "id": "tubekino",
   "name": "TubeKino — YouTube",
-  "version": "0.3.22",
-  "apiVersion": 6,
+  "version": "0.3.23",
+  "apiVersion": 11,
   "entry": "plugin.js",
   "description": "Busca y reproduce videos, listas y canales de YouTube con triple estrategia: extracción directa, respaldo en servidores de la comunidad (instancias de Invidious) para la calidad alta, y el navegador oculto que ejecuta la página real. Acepta enlaces pegados en el buscador.",
   "hosts": ["youtube.com", "*.youtube.com", "youtu.be", "*.ytimg.com", "googlevideo.com", "*.googlevideo.com", "inv.nadeko.net", "invidious.nerdvpn.de", "yt.chocolatemoo53.com", "invidious.tiekoetter.com", "invidious.f5.si", "pipedapi.kavin.rocks", "pipedapi-libre.kavin.rocks", "pipedapi.leptons.xyz", "pipedapi.nosebs.ru", "piped-api.privacy.com.de", "pipedapi.adminforge.de", "api.piped.yt", "pipedapi.drgns.space", "pipedapi.owo.si", "pipedapi.ducks.party", "piped-api.codespace.cz", "pipedapi.reallyaweso.me", "api.piped.private.coffee", "pipedapi.darkness.services", "pipedapi.orangenet.cc"],
-  "capabilities": ["search", "home", "browse", "episodes", "resolve", "scopedSearch"],
+  "capabilities": ["search", "home", "browse", "episodes", "resolve", "scopedSearch", "externalResolve"],
+  "externalResolver": { "package": "com.susejing.tubekino" },
   "browser": true,
   "debug": true,
   "settings": [
-    { "key": "ajustes", "label": "Reproducción", "type": "section", "hint": "Si un video falla, inténtalo otra vez: el plugin cambia de método solo." },    { "key": "metodo", "label": "Método de reproducción", "type": "select", "default": "auto",
+    { "key": "ajustes", "label": "Reproducción", "type": "section", "hint": "Si un video falla, inténtalo otra vez: el plugin cambia de método solo." },
+    { "key": "metodo", "label": "Método de reproducción", "type": "select", "default": "auto",
       "options": [
         { "value": "auto", "label": "Automático (recomendado)" },
         { "value": "navegador", "label": "Solo navegador oculto" },
