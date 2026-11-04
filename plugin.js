@@ -1,3 +1,19 @@
+// TubeKino — YouTube en Kino · github.com/Susejing/Tubekino
+// Copyright (C) 2026 Susejing
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 // TubeKino 0.3.22 — YouTube en Kino: búsqueda, listas, canales y reproducción.
 //
 // Cómo funciona: YouTube no entrega los enlaces de video así nada más.
@@ -2208,3 +2224,4 @@ export async function settingsStatus() {
   // error, como corresponde a un ajuste que ve cualquier usuario.
   return { estado: (texto + " Detalle: busca 'debug'.").slice(0, 200) };
       }
+
